@@ -6,10 +6,10 @@ import java.util.concurrent.BlockingQueue;
 /* Receives UDP messages and puts them on a queue. Works on
  * MulticastSockets as well (they are a subclass) */
 class Receiver extends Thread {
-    private BlockingQueue<DatagramPacket> queue;
-    private DatagramSocket               socket;
+    private BlockingQueue<Message> queue;
+    private DatagramSocket         socket;
 
-    public Receiver(BlockingQueue<DatagramPacket> aQueue, 
+    public Receiver(BlockingQueue<Message> aQueue, 
                     DatagramSocket aSocket) {
         this.queue   = aQueue;
         this.socket  = aSocket;
@@ -21,7 +21,8 @@ class Receiver extends Thread {
                 byte         buf[] = new byte[8192];
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 this.socket.receive(pkt);
-                this.queue.put(pkt);
+                this.queue.put(new Message(System.currentTimeMillis(),
+                                           pkt.getData(), pkt));
             } catch (InterruptedException e) {
                 /* We could not put it on the queue. This means the package
                  * is dropped. However, we continue to listen */
