@@ -4,12 +4,12 @@ import java.net.DatagramPacket;
 import java.util.concurrent.BlockingQueue;
 
 /* Receives UDP messages and puts them on a queue. Works on
- * MulticastSockets as well (they are a subclass) */
+ * MulticastSocket as well (extends DatagramSocket) */
 class Receiver extends Thread {
-    private BlockingQueue<Message> queue;
-    private DatagramSocket         socket;
+    private BlockingQueue<DatagramPacket> queue;
+    private DatagramSocket                socket;
 
-    public Receiver(BlockingQueue<Message> aQueue, 
+    public Receiver(BlockingQueue<DatagramPacke> aQueue,
                     DatagramSocket aSocket) {
         this.queue   = aQueue;
         this.socket  = aSocket;
@@ -21,18 +21,20 @@ class Receiver extends Thread {
                 byte         buf[] = new byte[8192];
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 this.socket.receive(pkt);
-                this.queue.put(new Message(System.currentTimeMillis(),
-                                           pkt.getData(), pkt));
+                /* Timestamping now happens in the middleware, causing
+                   a variable-time delay. But that is ok. */
+                this.queue.put(pkt);
             } catch (InterruptedException e) {
                 /* We could not put it on the queue. This means the package
                  * is dropped. However, we continue to listen */
                 continue;
             } catch (IOException e) {
                 if (socket.isClosed())
-                    return;
+                    break;
                 e.printStackTrace();
             }
         }
+        /* Cleanup? Never heard of that */
     }
 
     public void close() {

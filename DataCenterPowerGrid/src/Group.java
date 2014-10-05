@@ -1,55 +1,38 @@
-import java.util.Set;
-import java.util.HashSet;
-import java.util.TimerTask;
-import java.util.Timer;
+import java.util.Map;
+import java.util.HashMap;
+import java.net.SocketAddress;
 
-class Group implements Middleware {
-    public final static long HEARTBEAT_PERIOD = 5000;
+/* A thread-safe versioned mapping from PID's to SocketAddresses that
+ * represents the group. */
+class Group {
+    private long version;
+    private Map<Long, SocketAddress> map;
 
-    private boolean isLeader = false;
-    private boolean inElection = false;
-    private long    mostRecentHeartbeat = -1;
-    private Timer   timer;
-    private Set     members;
-
-    private class Heartbeat extends TimerTask {
-        public void run() {
-            long now = System.currentTimeMillis();
-            if (isLeader) {
-                // what to do - check if all group members have
-                // acknowledged
-            } else if (inElection) {
-                // ehm..
-            } else {
-                // if we have missed too many heartbeats,
-                // then we should call an election
-                if (now - mostRecentHeartbeat >= (2 * HEARTBEAT_PERIOD)) {
-                    inElection = true;
-                    // send out an election message. how?
-                }
-            }
-        }
+    public Group() {
+        version = 0;
+        map     = new HashMap<Long, SocketAddress>;
     }
 
-    public Group(Timer theTimer) {
-        this.timer = theTimer;
-        this.timer.schedule(new Heartbeat(), HEARTBEAT_PERIOD, 
-                            HEARTBEAT_PERIOD);
-        this.members = new HashSet();
+    public synchronized void add(long pid, SocketAddress address) {
+        map.put(pid, address);
+        version += 1;
     }
 
-
-    public Message onSend(Message aMessage) {
-        // nothing to do here. move along
-        return null;
+    public synchronized void remove(long pid) {
+        map.remove(pid);
+        version += 1;
     }
 
-    public Message onReceive(Message aMessage) {
-        // hmm.. not sure how to do this yet.  we'll handle the
-        // following types of messages (note - we'll have to do
-        // message decoding first. (or do we?. there is a good
-        // argument to be made in that each 'layer' gets to set it's
-        // own header.)
-        return null;
+    public synchronized SocketAddress getAddress(long pid) {
+        return map.get(pid);
+    }
+
+    public synchronized long getVersion() {
+        return version;
+    }
+
+    public synchronized Set<Long> getPids() {
+        return map.keySet();
     }
 }
+
