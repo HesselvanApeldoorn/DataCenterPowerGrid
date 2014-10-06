@@ -1,9 +1,13 @@
-import java.net.BlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 class Dispatcher extends Thread {
     private BlockingQueue<Message> queue;
     private Membership membership;
     private boolean isRunning;
+
+    public Dispatcher(BlockingQueue<Message> messageQueue) {
+        this.queue = messageQueue;
+    }
 
     public void run() {
         isRunning = true;
@@ -13,14 +17,14 @@ class Dispatcher extends Thread {
                 dispatchMessage(message);
             }
         } catch (InterruptedException ex) {
-            isRunning = false;
+            isRunning = false; // o.O
         }
     }
 
     private void dispatchMessage(Message message) {
-        switch(message.getType()) {
-        case Message.Type.HEARTBEAT:
-        case Message.Type.ACKNOWLEDGE:
+        switch(message.type) {
+        case HEARTBEAT:
+        case ACKNOWLEDGE:
             membership.receive(message);
             break;
         }

@@ -7,6 +7,7 @@ class Membership {
     private Group   group;
     private Middleware middleware;
     private boolean isLeader = false;
+    private boolean canLead = false;
     private boolean inElection = false;
     private long    mostRecentHeartbeat = -1;
 
@@ -15,9 +16,9 @@ class Membership {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.canLead    = iCanLead;
-        this.middleware.getTimer().schedle(new Heartbeat(),
-                                           HEARTBEAT_PERIOD,
-                                           HEARTBEAT_PERIOD);
+        this.middleware.getTimer().schedule(new Heartbeat(),
+                                            HEARTBEAT_PERIOD,
+                                            HEARTBEAT_PERIOD);
     }
 
     public void receive(Message message) {

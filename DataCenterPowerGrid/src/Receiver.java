@@ -9,7 +9,7 @@ class Receiver extends Thread {
     private BlockingQueue<DatagramPacket> queue;
     private DatagramSocket                socket;
 
-    public Receiver(BlockingQueue<DatagramPacke> aQueue,
+    public Receiver(BlockingQueue<DatagramPacket> aQueue,
                     DatagramSocket aSocket) {
         this.queue   = aQueue;
         this.socket  = aSocket;

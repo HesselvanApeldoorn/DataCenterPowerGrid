@@ -1,5 +1,6 @@
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 import java.net.SocketAddress;
 
 /* A thread-safe versioned mapping from PID's to SocketAddresses that
@@ -10,7 +11,7 @@ class Group {
 
     public Group() {
         version = 0;
-        map     = new HashMap<Long, SocketAddress>;
+        map     = new HashMap<Long, SocketAddress>();
     }
 
     public synchronized void add(long pid, SocketAddress address) {

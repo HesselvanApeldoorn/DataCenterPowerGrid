@@ -1,6 +1,6 @@
 import java.net.DatagramSocket;
-import java.net.DatagrampPacket;
-import java.net.IOException;
+import java.net.DatagramPacket;
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 
 class Sender extends Thread {

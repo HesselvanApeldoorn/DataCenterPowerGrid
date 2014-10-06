@@ -13,21 +13,21 @@ class Middleware extends Thread {
     private Timer timer;
     private boolean stopped;
 
-    public void Middleware(BlockingQueue<DatagramPacket> theInnputQueue,
+    public void Middleware(BlockingQueue<DatagramPacket> theInputQueue,
                            BlockingQueue<DatagramPacket> theOutputQueue,
                            BlockingQueue<DatagramPacket> theMulticastQueue,
-                           BlockingQue<Message> theDeliveryQueue,
+                           BlockingQueue<Message> theDeliveryQueue,
                            Group theGroup) {
         this.inputQueue           = theInputQueue;
         this.outputQueue          = theOutputQueue;
-        this.multicastOutputQueue = theMulicastQueue;
+        this.multicastOutputQueue = theMulticastQueue;
         this.deliveryQueue        = theDeliveryQueue;
         this.group                = theGroup;
         this.timer                = new Timer();
     }
 
     public void send(long pid, Message msg) {
-        SocketAddress address = getSocketAddress(pid);
+        SocketAddress address = this.group.getAddress(pid);
         DatagramPacket packet = encodeMessage(address, msg, false);
         try {
             this.outputQueue.put(packet);
@@ -37,7 +37,7 @@ class Middleware extends Thread {
     }
 
     public void sendGroup(Message msg) {
-        DatagramPacket packet = encodeMessage(address, null, true);
+        DatagramPacket packet = encodeMessage(null, msg, true);
         try {
             this.multicastOutputQueue.put(packet);
         } catch (InterruptedException ex) {
@@ -52,7 +52,7 @@ class Middleware extends Thread {
                 DatagramPacket packet = this.inputQueue.take();
                 Message       message = decodeMessage(packet);
                 // do reordering if necessary, no-op for now
-                this.deliveryQueue.put(packet);
+                this.deliveryQueue.put(message);
             }
         } catch (InterruptedException ex) {
             // guess somebody wanted us to stop
@@ -61,16 +61,13 @@ class Middleware extends Thread {
         this.timer.cancel();
     }
 
-    private SocketAddress getSocketAddress(long pid) {
-        return groupMap.get(pid);
-    }
-
     private Message decodeMessage(DatagramPacket packet) {
         long now = System.currentTimeMillis();
         return null;
     }
 
-    private DatagramPacket encodeMessage(Message msg, SocketAddress addr,
+    private DatagramPacket encodeMessage(SocketAddress addr,
+                                         Message msg,
                                          boolean isMulticast) {
         return null;
     }

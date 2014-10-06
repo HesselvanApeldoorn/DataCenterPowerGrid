@@ -1,18 +1,11 @@
-import java.net.DatagramPacket;
+import java.io.Serializable;
 
-class Message {
+class Message implements Serializable {
     public static enum Type {
         HEARTBEAT,
         ACKNOWLEDGE
     }
-    final byte[]         data;
-    final long           timestamp;
-    final DatagramPacket packet;
-
-
-    public Message(long aTimestamp, byte[] someData, DatagramPacket aPacket) {
-        this.timestamp = aTimestamp;
-        this.data      = someData;
-        this.packet   = aPacket;
-    }
+    public Type type;
+    public long senderPid;
+    public long timeStamp;
 }
