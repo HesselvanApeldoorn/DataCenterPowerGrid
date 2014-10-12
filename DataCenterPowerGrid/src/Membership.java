@@ -21,25 +21,10 @@ class Membership {
                                             HEARTBEAT_PERIOD);
     }
 
-    public void receive(Message message) {
-
-    }
 
     private class Heartbeat extends TimerTask {
         public void run() {
             long now = System.currentTimeMillis();
-            if (isLeader) {
-                // pass
-            } else if (inElection) {
-                // ehm..
-            } else {
-                // if we have missed too many heartbeats,
-                // then we should call an election
-                if (now - mostRecentHeartbeat >= (2 * HEARTBEAT_PERIOD)) {
-                    inElection = true;
-                    // send out an election message. how?
-                }
-            }
         }
     }
 

@@ -6,6 +6,7 @@ import java.net.SocketAddress;
 /* A thread-safe versioned mapping from PID's to SocketAddresses that
  * represents the group. */
 class Group {
+    private long pid;
     private long version;
     private Map<Long, SocketAddress> map;
 
