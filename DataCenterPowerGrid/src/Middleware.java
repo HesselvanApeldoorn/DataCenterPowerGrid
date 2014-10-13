@@ -1,4 +1,3 @@
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.MulticastSocket;
@@ -17,25 +16,36 @@ import java.util.concurrent.LinkedBlockingQueue;
 class Middleware extends Thread {
     private DatagramSocket  privateSocket;
     private Receiver        privateReceiver;
+    private Sender          privateSender;
+
     private MulticastSocket groupSocket;
     private Receiver        groupReceiver;
+    private Sender          groupSender;
+
+    private SocketAddress   groupAddress;
 
     private BlockingQueue<DatagramPacket> inputQueue;
     private BlockingQueue<DatagramPacket> outputQueue;
+    private BlockingQueue<DatagramPacket> multicastQueue;
     private BlockingQueue<Message>        deliveryQueue;
     private Group group;
     private Timer timer;
     private boolean stopped;
 
-    public void Middleware(DatagramSocket thePrivateSocket,
-                           MulticastSocket theGroupSocket) {
+    public Middleware(DatagramSocket thePrivateSocket,
+                      MulticastSocket theGroupSocket,
+                      SocketAddress theGroupAddress) {
         this.privateSocket   = thePrivateSocket;
         this.groupSocket     = theGroupSocket;
+        this.groupAddress    = theGroupAddress;
         this.inputQueue      = new LinkedBlockingQueue<DatagramPacket>();
         this.outputQueue     = new ArrayBlockingQueue<DatagramPacket>(10);
+        this.multicastQueue  = new ArrayBlockingQueue<DatagramPacket>(10);
         this.privateReceiver = new Receiver(inputQueue, privateSocket);
-        this.groupReceiver   = new Receiver(outputQueue, groupSocket);
-
+        this.privateSender   = new Sender(outputQueue, privateSocket);
+        this.groupReceiver   = new Receiver(inputQueue, groupSocket);
+        this.groupSender     = new Sender(multicastQueue, groupSocket);
+        this.timer           = new Timer();
     }
 
     public void send(long pid, Message msg) {
@@ -49,9 +59,9 @@ class Middleware extends Thread {
     }
 
     public void sendGroup(Message msg) {
-        DatagramPacket packet = encodeMessage(null, msg);
+        DatagramPacket packet = encodeMessage(groupAddress, msg);
         try {
-            this.outputQueue.put(packet);
+            this.multicastQueue.put(packet);
         } catch (InterruptedException ex) {
             System.out.println("Dropped group message because of interrupt");
         }
@@ -59,6 +69,7 @@ class Middleware extends Thread {
 
     public void run() {
         stopped = false;
+        setup();
         try {
             while (!stopped) {
                 DatagramPacket packet = this.inputQueue.take();
@@ -70,7 +81,40 @@ class Middleware extends Thread {
             // guess somebody wanted us to stop
             stopped = true;
         }
-        this.timer.cancel();
+        teardown();
+    }
+
+    public void shutdown() {
+        stopped = true;
+        interrupt();
+    }
+
+    private void setup() {
+        groupSender.start();
+        groupReceiver.start();
+        privateSender.start();
+        privateReceiver.start();
+    }
+
+    private void teardown() {
+        timer.cancel();
+        groupSocket.close();
+        privateSocket.close();
+        reallyJoin(groupSender);
+        reallyJoin(groupReceiver);
+        reallyJoin(privateSender);
+        reallyJoin(privateReceiver);
+    }
+
+    private void reallyJoin(Thread thread) {
+        while (thread.isAlive()) {
+            try {
+                thread.interrupt();
+                thread.join();
+            } catch (InterruptedException e) {
+                continue;
+            }
+        }
     }
 
     private Message decodeMessage(DatagramPacket packet) {
@@ -96,7 +140,7 @@ class Middleware extends Thread {
                                          Message message) {
         try {
             ByteArrayOutputStream buffer = new ByteArrayOutputStream(8192);
-            ObjectOutputStream stream = new ObjectOutputStream(buffer);
+            ObjectOutputStream stream    = new ObjectOutputStream(buffer);
             stream.writeObject(message);
             stream.close();
             return new DatagramPacket(buffer.toByteArray(), buffer.size(), addr);

@@ -16,6 +16,7 @@ class Receiver extends Thread {
     }
 
     public void run() {
+        System.err.println("Receiver start");
         while(!this.socket.isClosed()) {
             try {
                 byte         buf[] = new byte[8192];
@@ -35,11 +36,7 @@ class Receiver extends Thread {
             }
         }
         /* Cleanup? Never heard of that */
-    }
-
-    public void close() {
-        /* close the socket */
-        this.socket.close();
+        System.err.println("Receiver stop");
     }
 }
 

@@ -14,6 +14,7 @@ class Sender extends Thread {
     }
 
     public void run() {
+        System.err.println("Sender start");
         while (!socket.isClosed()) {
             try {
                 DatagramPacket packet = queue.take();
@@ -24,9 +25,11 @@ class Sender extends Thread {
                 if (socket.isClosed())
                     break;
             } catch (InterruptedException ex) {
+
                 continue;
             }
         }
+        System.err.println("Sender stop");
         /* No cleanup here, either */
     }
 }
