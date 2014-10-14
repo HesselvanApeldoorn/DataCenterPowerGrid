@@ -16,6 +16,7 @@ class Membership {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.canLead    = iCanLead;
+    	System.out.println("run");
         this.middleware.getTimer().schedule(new Heartbeat(),
                                             HEARTBEAT_PERIOD,
                                             HEARTBEAT_PERIOD);

@@ -50,7 +50,7 @@ class Middleware extends Thread {
 
     public void send(long pid, Message msg) {
         SocketAddress address = this.group.getAddress(pid);
-        DatagramPacket packet = encodeMessage(address, msg);
+        DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
         } catch (InterruptedException ex) {
@@ -59,7 +59,7 @@ class Middleware extends Thread {
     }
 
     public void sendGroup(Message msg) {
-        DatagramPacket packet = encodeMessage(groupAddress, msg);
+        DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
             this.multicastQueue.put(packet);
         } catch (InterruptedException ex) {
@@ -69,11 +69,11 @@ class Middleware extends Thread {
 
     public void run() {
         stopped = false;
-        setup();
+        this.setup();
         try {
             while (!stopped) {
                 DatagramPacket packet = this.inputQueue.take();
-                Message       message = decodeMessage(packet);
+                Message       message = this.decodeMessage(packet);
                 // do reordering if necessary, no-op for now
                 this.deliveryQueue.put(message);
             }
@@ -81,7 +81,7 @@ class Middleware extends Thread {
             // guess somebody wanted us to stop
             stopped = true;
         }
-        teardown();
+        this.teardown();
     }
 
     public void shutdown() {
