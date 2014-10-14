@@ -16,17 +16,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 class Middleware extends Thread {
     private DatagramSocket  privateSocket;
     private Receiver        privateReceiver;
-    private Sender          privateSender;
-
     private MulticastSocket groupSocket;
     private Receiver        groupReceiver;
-    private Sender          groupSender;
+    private Sender          sender;
 
     private SocketAddress   groupAddress;
 
     private BlockingQueue<DatagramPacket> inputQueue;
     private BlockingQueue<DatagramPacket> outputQueue;
-    private BlockingQueue<DatagramPacket> multicastQueue;
     private BlockingQueue<Message>        deliveryQueue;
     private Group group;
     private Timer timer;
@@ -41,17 +38,19 @@ class Middleware extends Thread {
         this.groupAddress    = theGroupAddress;
         this.inputQueue      = new LinkedBlockingQueue<DatagramPacket>();
         this.outputQueue     = new ArrayBlockingQueue<DatagramPacket>(10);
-        this.multicastQueue  = new ArrayBlockingQueue<DatagramPacket>(10);
         this.privateReceiver = new Receiver(inputQueue, privateSocket);
-        this.privateSender   = new Sender(outputQueue, privateSocket);
         this.groupReceiver   = new Receiver(inputQueue, groupSocket);
-        this.groupSender     = new Sender(multicastQueue, groupSocket);
+        this.sender          = new Sender(outputQueue, privateSocket);
         this.timer           = new Timer();
+        /* note that group hasn't been initialized yet. and maybe i
+         * want to merge membership into group. but it depends.  Also
+         * note that group management is the only thing that depends
+         * on ordering multicast. */
         this.membership = new Membership(group, this, true);
     }
 
     public void send(long pid, Message msg) {
-        SocketAddress address = this.group.getAddress(pid); // is this pid the receiver pid?
+        SocketAddress address = this.group.getAddress(pid); // is this pid the receiver pid? - yes
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
@@ -63,7 +62,7 @@ class Middleware extends Thread {
     public void sendGroup(Message msg) {
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
-            this.multicastQueue.put(packet);
+            this.outputQueue.put(packet);
         } catch (InterruptedException ex) {
             System.out.println("Dropped group message because of interrupt");
         }
@@ -76,6 +75,10 @@ class Middleware extends Thread {
             while (!stopped) {
                 DatagramPacket packet = this.inputQueue.take();
                 Message       message = this.decodeMessage(packet);
+                if (message == null) {
+                    System.err.println("Received undecodable message");
+                    continue;
+                }
                 // do reordering if necessary, no-op for now
                 this.deliveryQueue.put(message);
             }
@@ -92,9 +95,8 @@ class Middleware extends Thread {
     }
 
     private void setup() {
-        groupSender.start();
+        sender.start();
         groupReceiver.start();
-        privateSender.start();
         privateReceiver.start();
     }
 
@@ -102,9 +104,8 @@ class Middleware extends Thread {
         timer.cancel();
         groupSocket.close();
         privateSocket.close();
-        reallyJoin(groupSender);
+        reallyJoin(sender);
         reallyJoin(groupReceiver);
-        reallyJoin(privateSender);
         reallyJoin(privateReceiver);
     }
 

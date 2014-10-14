@@ -10,6 +10,7 @@ class Membership {
     private boolean canLead = false;
     private boolean inElection = false;
     private long    mostRecentHeartbeat = -1;
+    private long    pid;
 
     public Membership(Group theGroup, Middleware theMiddleware,
                       boolean iCanLead) {
@@ -26,7 +27,7 @@ class Membership {
         public void run() {
             long now = System.currentTimeMillis();
             /* TODO: Message is not yet fully implemented, code underneath will not run perfectly yet*/
-            if (!isLeader) middleware.send(new Message(leader_pid, now));
+            if (!isLeader) middleware.sendGroup(new Message(pid, now));
         }
     }
 

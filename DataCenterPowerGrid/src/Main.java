@@ -16,9 +16,10 @@ public class Main {
         DatagramSocket personalSocket  = getPersonalSocket();
         MulticastSocket groupSocket    = new MulticastSocket(GROUP_PORT);
         groupSocket.joinGroup(groupAddress.getAddress());
-        Middleware middleware         = new Middleware(personalSocket, groupSocket, groupAddress);
+        Middleware middleware          = new Middleware(personalSocket, groupSocket, groupAddress);
         middleware.start();
         middleware.shutdown();
+        /* Is this necessary? we already closed the socket to stop the receiver */
         groupSocket.leaveGroup(groupAddress.getAddress());
     }
 
