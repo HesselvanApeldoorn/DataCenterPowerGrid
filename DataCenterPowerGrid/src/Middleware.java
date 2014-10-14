@@ -31,6 +31,7 @@ class Middleware extends Thread {
     private Group group;
     private Timer timer;
     private boolean stopped;
+    private Membership membership;
 
     public Middleware(DatagramSocket thePrivateSocket,
                       MulticastSocket theGroupSocket,
@@ -46,10 +47,11 @@ class Middleware extends Thread {
         this.groupReceiver   = new Receiver(inputQueue, groupSocket);
         this.groupSender     = new Sender(multicastQueue, groupSocket);
         this.timer           = new Timer();
+        this.membership = new Membership(group, this, true);
     }
 
     public void send(long pid, Message msg) {
-        SocketAddress address = this.group.getAddress(pid);
+        SocketAddress address = this.group.getAddress(pid); // is this pid the receiver pid?
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);

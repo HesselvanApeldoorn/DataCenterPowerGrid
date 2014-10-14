@@ -16,7 +16,6 @@ class Membership {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.canLead    = iCanLead;
-    	System.out.println("run");
         this.middleware.getTimer().schedule(new Heartbeat(),
                                             HEARTBEAT_PERIOD,
                                             HEARTBEAT_PERIOD);
@@ -26,6 +25,8 @@ class Membership {
     private class Heartbeat extends TimerTask {
         public void run() {
             long now = System.currentTimeMillis();
+            /* TODO: Message is not yet fully implemented, code underneath will not run perfectly yet*/
+            if (!isLeader) middleware.send(new Message(leader_pid, now));
         }
     }
 
