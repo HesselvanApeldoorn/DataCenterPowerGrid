@@ -32,14 +32,14 @@ class Middleware extends Thread {
     
     public static class ReceivedMessage {
     	public final long timestamp;
-    	public final long pid;
+    	public final long sender;
     	public final DatagramPacket packet;
     	public final Message message;
     	
     	public ReceivedMessage(long theTimestamp, long thePid,
     							DatagramPacket thePacket, Message theMessage) {
     		this.timestamp = theTimestamp;
-    		this.pid       = thePid;
+    		this.sender    = thePid;
     		this.packet    = thePacket;
     		this.message   = theMessage;
     	}
