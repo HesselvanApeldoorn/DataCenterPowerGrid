@@ -5,19 +5,26 @@ import java.net.BindException;
 import java.net.SocketException;
 import java.net.SocketAddress;
 import java.net.InetSocketAddress;
-
+import java.util.concurrent.BlockingQueue;
 
 public class Main {
     public static final String GROUP_HOSTNAME = "224.0.0.224";
     public static final int    GROUP_PORT     = 8437;
 	
-    public static void main(String[] argv) throws IOException {
+    public static void main(String[] argv) throws IOException, InterruptedException {
         InetSocketAddress groupAddress = new InetSocketAddress(GROUP_HOSTNAME, GROUP_PORT);
         DatagramSocket personalSocket  = getPersonalSocket();
+        System.out.println(personalSocket.getLocalSocketAddress());
         MulticastSocket groupSocket    = new MulticastSocket(GROUP_PORT);
         groupSocket.joinGroup(groupAddress.getAddress());
         Middleware middleware          = new Middleware(personalSocket, groupSocket, groupAddress);
         middleware.start();
+        BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
+        for (int i = 0; i < 10; i++) {
+        	middleware.sendGroup(new Message(i));
+        	Middleware.ReceivedMessage message = queue.take();
+        	System.out.printf("Received: %s from %s\n", message.message, message.packet.getSocketAddress());
+        }
         middleware.shutdown();
         /* Is this necessary? we already closed the socket to stop the receiver */
         groupSocket.leaveGroup(groupAddress.getAddress());

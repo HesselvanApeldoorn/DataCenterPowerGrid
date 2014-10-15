@@ -22,13 +22,28 @@ class Middleware extends Thread {
 
     private SocketAddress   groupAddress;
 
-    private BlockingQueue<DatagramPacket> inputQueue;
-    private BlockingQueue<DatagramPacket> outputQueue;
-    private BlockingQueue<Message>        deliveryQueue;
+    private BlockingQueue<DatagramPacket>  inputQueue;
+    private BlockingQueue<DatagramPacket>  outputQueue;
+    private BlockingQueue<ReceivedMessage> deliveryQueue;
     private Group group;
     private Timer timer;
     private boolean stopped;
     private Membership membership;
+    
+    public static class ReceivedMessage {
+    	public final long timestamp;
+    	public final long pid;
+    	public final DatagramPacket packet;
+    	public final Message message;
+    	
+    	public ReceivedMessage(long theTimestamp, long thePid,
+    							DatagramPacket thePacket, Message theMessage) {
+    		this.timestamp = theTimestamp;
+    		this.pid       = thePid;
+    		this.packet    = thePacket;
+    		this.message   = theMessage;
+    	}
+    }
 
     public Middleware(DatagramSocket thePrivateSocket,
                       MulticastSocket theGroupSocket,
@@ -38,19 +53,21 @@ class Middleware extends Thread {
         this.groupAddress    = theGroupAddress;
         this.inputQueue      = new LinkedBlockingQueue<DatagramPacket>();
         this.outputQueue     = new ArrayBlockingQueue<DatagramPacket>(10);
+        this.deliveryQueue   = new ArrayBlockingQueue<ReceivedMessage>(10);
         this.privateReceiver = new Receiver(inputQueue, privateSocket);
         this.groupReceiver   = new Receiver(inputQueue, groupSocket);
         this.sender          = new Sender(outputQueue, privateSocket);
         this.timer           = new Timer();
+        this.group           = new Group();
         /* note that group hasn't been initialized yet. and maybe i
          * want to merge membership into group. but it depends.  Also
          * note that group management is the only thing that depends
          * on ordering multicast. */
-        this.membership = new Membership(group, this, true);
+        //this.membership = new Membership(group, this, true);
     }
 
-    public void send(long pid, Message msg) {
-        SocketAddress address = this.group.getAddress(pid); // is this pid the receiver pid? - yes
+    public void send(long receiver_pid, Message msg) {
+        SocketAddress address = this.group.getAddress(receiver_pid);
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
@@ -74,13 +91,13 @@ class Middleware extends Thread {
         try {
             while (!stopped) {
                 DatagramPacket packet = this.inputQueue.take();
-                Message       message = this.decodeMessage(packet);
-                if (message == null) {
+                ReceivedMessage recvd = this.decodeMessage(packet);
+                if (recvd == null) {
                     System.err.println("Received undecodable message");
                     continue;
                 }
                 // do reordering if necessary, no-op for now
-                this.deliveryQueue.put(message);
+                this.deliveryQueue.put(recvd);
             }
         } catch (InterruptedException ex) {
             // guess somebody wanted us to stop
@@ -120,15 +137,15 @@ class Middleware extends Thread {
         }
     }
 
-    private Message decodeMessage(DatagramPacket packet) {
+    private ReceivedMessage decodeMessage(DatagramPacket packet) {
         long now = System.currentTimeMillis();
         try {
             ObjectInputStream stream = new ObjectInputStream(
                     new ByteArrayInputStream(packet.getData(), packet.getOffset(), packet.getLength())
             );
             Message message = (Message) stream.readObject();
-            message.timeStamp = now;
-            return message;
+            long    sender = group.getPid(packet.getSocketAddress());
+            return new ReceivedMessage(now, sender, packet, message);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -157,4 +174,10 @@ class Middleware extends Thread {
     public Timer getTimer() {
         return timer;
     }
+    
+    public BlockingQueue<ReceivedMessage> getDeliveryQueue() {
+    	return deliveryQueue;
+    }
+    
+   
 }

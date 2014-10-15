@@ -36,5 +36,9 @@ class Group {
     public synchronized Set<Long> getPids() {
         return map.keySet();
     }
+    
+    public long getPid(SocketAddress addr) {
+    	return -1;
+    }
 }
 

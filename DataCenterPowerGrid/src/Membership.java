@@ -27,7 +27,7 @@ class Membership {
         public void run() {
             long now = System.currentTimeMillis();
             /* TODO: Message is not yet fully implemented, code underneath will not run perfectly yet*/
-            if (!isLeader) middleware.sendGroup(new Message(pid, now));
+  
         }
     }
 

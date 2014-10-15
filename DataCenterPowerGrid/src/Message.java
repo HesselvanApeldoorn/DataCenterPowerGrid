@@ -1,12 +1,14 @@
 import java.io.Serializable;
 
 class Message implements Serializable {
-    public long senderPid;
-    public long timeStamp;
-
+    public int num;
     
-    public Message(long senderPid, long timeStamp) {
-    	this.senderPid = senderPid;
-    	this.timeStamp = timeStamp;
+    public Message(int val) {
+    	this.num = val;
+    }
+    
+    public String toString() {
+    	
+    	return String.format("Message %d", num);
     }
 }

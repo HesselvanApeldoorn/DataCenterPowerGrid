@@ -24,6 +24,7 @@ class Receiver extends Thread {
                 this.socket.receive(pkt);
                 /* Timestamping now happens in the middleware, causing
                    a variable-time delay. But that is ok. */
+                System.out.printf("Received on socket %s\n", this.socket.getLocalSocketAddress());
                 this.queue.put(pkt);
             } catch (InterruptedException e) {
                 /* We could not put it on the queue. This means the package

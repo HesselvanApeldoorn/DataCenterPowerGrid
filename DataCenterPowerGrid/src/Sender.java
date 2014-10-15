@@ -25,7 +25,6 @@ class Sender extends Thread {
                 if (socket.isClosed())
                     break;
             } catch (InterruptedException ex) {
-
                 continue;
             }
         }
