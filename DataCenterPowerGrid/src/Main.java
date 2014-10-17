@@ -19,8 +19,13 @@ public class Main {
         groupSocket.joinGroup(groupAddress.getAddress());
         Middleware middleware          = new Middleware(personalSocket, groupSocket, groupAddress);
         middleware.start();
+        if (argv.length > 0 && argv[0].equals("leader")) {
+            Leader leader = new Leader(middleware.getGroup(), middleware);
+            leader.run();
+        }
         BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
         for (int i = 0; i < 10; i++) {
+        	Thread.sleep(1500);
         	middleware.sendGroup(new Message(i));
         	Middleware.ReceivedMessage message = queue.take();
         	System.out.printf("Received: %s from %s\n", message.message, message.packet.getSocketAddress());

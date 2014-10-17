@@ -26,7 +26,7 @@ class Middleware extends Thread {
     private BlockingQueue<DatagramPacket>  outputQueue;
     private BlockingQueue<ReceivedMessage> deliveryQueue;
     private Group group;
-    private Timer timer;
+	private Timer timer;
     private boolean stopped;
     private Membership membership;
     
@@ -179,5 +179,12 @@ class Middleware extends Thread {
     	return deliveryQueue;
     }
     
+    public Group getGroup() {
+		return group;
+	}
+
+	public void setGroup(Group group) {
+		this.group = group;
+	}
    
 }

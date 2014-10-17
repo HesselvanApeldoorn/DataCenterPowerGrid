@@ -1,11 +1,7 @@
 
 public class AckMessage extends Message {
-	public long timeStamp;
-	public long pid;
-	public AckMessage(long timeStamp, long pid) {
+	public AckMessage() {
 		super(0);
-		this.timeStamp = timeStamp;
-		this.pid = pid;
 	}
 
 }
