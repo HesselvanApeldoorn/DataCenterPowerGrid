@@ -8,25 +8,33 @@ import java.net.SocketAddress;
 class Group {
     private long pid;
     private long version;
-    private Map<Long, SocketAddress> map;
+    private Map<Long, SocketAddress> pidToSocket;
+    private Map<SocketAddress, Long> socketToPid;
 
     public Group() {
-        version = 0;
-        map     = new HashMap<Long, SocketAddress>();
+        version         = 0;
+        pidToSocket     = new HashMap<Long, SocketAddress>();
+        socketToPid     = new HashMap<SocketAddress, Long>();
     }
 
     public synchronized void add(long pid, SocketAddress address) {
-        map.put(pid, address);
+        pidToSocket.put(pid, address);
+        socketToPid.put(address, pid);
         version += 1;
     }
 
     public synchronized void remove(long pid) {
-        map.remove(pid);
+        socketToPid.remove(pidToSocket.get(pid));
+        pidToSocket.remove(pid);
         version += 1;
     }
 
     public synchronized SocketAddress getAddress(long pid) {
-        return map.get(pid);
+        return pidToSocket.get(pid);
+    }
+
+    public synchronized long getPid(SocketAddress addr) {
+        return socketToPid.get(addr);
     }
 
     public synchronized long getVersion() {
@@ -34,11 +42,7 @@ class Group {
     }
 
     public synchronized Set<Long> getPids() {
-        return map.keySet();
-    }
-    
-    public long getPid(SocketAddress addr) {
-    	return -1;
+        return pidToSocket.keySet();
     }
 }
 
