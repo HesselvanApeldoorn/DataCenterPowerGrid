@@ -14,7 +14,7 @@ class Group {
     public Group() {
         version         = 0;
         pidToSocket     = new HashMap<Long, SocketAddress>();
-        socketToPid     = new HashMap<SocketAddress, Long>();
+        socketToPid     = new DefaultHashMap<SocketAddress, Long>(-1l);
     }
 
     public synchronized void add(long pid, SocketAddress address) {
