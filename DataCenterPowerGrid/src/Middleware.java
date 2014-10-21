@@ -14,8 +14,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 class Middleware extends Thread {
-    private DatagramSocket  privateSocket;
-    private Receiver        privateReceiver;
+    private DatagramSocket  peerSocket;
+    private Receiver        peerReceiver;
     private MulticastSocket groupSocket;
     private Receiver        groupReceiver;
     private Sender          sender;
@@ -25,10 +25,15 @@ class Middleware extends Thread {
     private BlockingQueue<DatagramPacket>  inputQueue;
     private BlockingQueue<DatagramPacket>  outputQueue;
     private BlockingQueue<ReceivedMessage> deliveryQueue;
+
+    private HoldbackQueue peerQueue;
+    private HoldbackQueue groupQueue;
     private Group group;
+
     private Timer timer;
+
+
     private boolean stopped;
-    private Membership membership;
 
     public static class ReceivedMessage {
         public final long timestamp;
@@ -44,24 +49,27 @@ class Middleware extends Thread {
         }
     }
 
-    public Middleware(DatagramSocket thePrivateSocket,
+    public Middleware(DatagramSocket thePeerSocket,
                       MulticastSocket theGroupSocket,
                       SocketAddress theGroupAddress) {
-        this.privateSocket   = thePrivateSocket;
-        this.groupSocket     = theGroupSocket;
-        this.groupAddress    = theGroupAddress;
-        this.inputQueue      = new LinkedBlockingQueue<DatagramPacket>();
-        this.outputQueue     = new ArrayBlockingQueue<DatagramPacket>(10);
-        this.deliveryQueue   = new ArrayBlockingQueue<ReceivedMessage>(10);
-        this.privateReceiver = new Receiver(inputQueue, privateSocket);
-        this.groupReceiver   = new Receiver(inputQueue, groupSocket);
-        this.sender          = new Sender(outputQueue, privateSocket);
-        this.timer           = new Timer();
-        this.group           = new Group();
+        this.peerSocket     = thePeerSocket;
+        this.groupSocket    = theGroupSocket;
+        this.groupAddress   = theGroupAddress;
+        this.inputQueue     = new LinkedBlockingQueue<DatagramPacket>();
+        this.outputQueue    = new ArrayBlockingQueue<DatagramPacket>(10);
+        this.deliveryQueue  = new ArrayBlockingQueue<ReceivedMessage>(10);
+        this.peerReceiver   = new Receiver(inputQueue, peerSocket);
+        this.groupReceiver  = new Receiver(inputQueue, groupSocket);
+        this.sender         = new Sender(outputQueue, peerSocket);
+        this.timer          = new Timer();
+        this.group          = new Group();
+        this.peerQueue      = new HoldbackQueue(this);
+        this.groupQueue     = new HoldbackQueue(this);
     }
 
     public void send(long receiver_pid, Message msg) {
         SocketAddress address = this.group.getAddress(receiver_pid);
+        msg.is_multicast = false;
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
@@ -71,6 +79,7 @@ class Middleware extends Thread {
     }
 
     public void sendGroup(Message msg) {
+        msg.is_multicast = true;
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
             this.outputQueue.put(packet);
@@ -85,13 +94,12 @@ class Middleware extends Thread {
         try {
             while (!stopped) {
                 DatagramPacket packet = this.inputQueue.take();
-                ReceivedMessage recvd = this.decodeMessage(packet);
-                if (recvd == null) {
+                ReceivedMessage message = this.decodeMessage(packet);
+                if (message == null) {
                     System.err.println("Received undecodable message");
                     continue;
                 }
-                // do reordering if necessary, no-op for now
-                this.deliveryQueue.put(recvd);
+                deliverMessage(message);
             }
         } catch (InterruptedException ex) {
             // guess somebody wanted us to stop
@@ -108,16 +116,16 @@ class Middleware extends Thread {
     private void setup() {
         sender.start();
         groupReceiver.start();
-        privateReceiver.start();
+        peerReceiver.start();
     }
 
     private void teardown() {
         timer.cancel();
         groupSocket.close();
-        privateSocket.close();
+        peerSocket.close();
         reallyJoin(sender);
         reallyJoin(groupReceiver);
-        reallyJoin(privateReceiver);
+        reallyJoin(peerReceiver);
     }
 
     private void reallyJoin(Thread thread) {
@@ -162,6 +170,24 @@ class Middleware extends Thread {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private void deliverMessage(ReceivedMessage message) throws InterruptedException {
+        if (message.payload.is_ordered) {
+            if (message.payload.is_multicast) {
+               this.groupQueue.give(message);
+                for (ReceivedMessage deliverable : this.groupQueue.getDeliverableMessages()) {
+                    this.deliveryQueue.put(message);
+                }
+           } else {
+                this.peerQueue.give(message);
+                for (ReceivedMessage deliverable : this.peerQueue.getDeliverableMessages()) {
+                    this.deliveryQueue.put(deliverable);
+                }
+            }
+        } else {
+            this.deliveryQueue.put(message);
+        }
     }
 
     /* So that we may all use the same timer */
