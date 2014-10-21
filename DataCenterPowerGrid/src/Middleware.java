@@ -26,23 +26,22 @@ class Middleware extends Thread {
     private BlockingQueue<DatagramPacket>  outputQueue;
     private BlockingQueue<ReceivedMessage> deliveryQueue;
     private Group group;
-	private Timer timer;
+    private Timer timer;
     private boolean stopped;
     private Membership membership;
-    
+
     public static class ReceivedMessage {
-    	public final long timestamp;
-    	public final long sender;
-    	public final DatagramPacket packet;
-    	public final Message message;
-    	
-    	public ReceivedMessage(long theTimestamp, long thePid,
-    							DatagramPacket thePacket, Message theMessage) {
-    		this.timestamp = theTimestamp;
-    		this.sender    = thePid;
-    		this.packet    = thePacket;
-    		this.message   = theMessage;
-    	}
+        public final long timestamp;
+        public final long sender;
+        public final DatagramPacket packet;
+        public final Message payload;
+        public ReceivedMessage(long theTimestamp, long thePid,
+                               DatagramPacket thePacket, Message theMessage) {
+            this.timestamp = theTimestamp;
+            this.sender    = thePid;
+            this.packet    = thePacket;
+            this.payload   = theMessage;
+        }
     }
 
     public Middleware(DatagramSocket thePrivateSocket,
@@ -59,11 +58,6 @@ class Middleware extends Thread {
         this.sender          = new Sender(outputQueue, privateSocket);
         this.timer           = new Timer();
         this.group           = new Group();
-        /* note that group hasn't been initialized yet. and maybe i
-         * want to merge membership into group. but it depends.  Also
-         * note that group management is the only thing that depends
-         * on ordering multicast. */
-        //this.membership = new Membership(group, this, true);
     }
 
     public void send(long receiver_pid, Message msg) {
@@ -174,17 +168,12 @@ class Middleware extends Thread {
     public Timer getTimer() {
         return timer;
     }
-    
-    public BlockingQueue<ReceivedMessage> getDeliveryQueue() {
-    	return deliveryQueue;
-    }
-    
-    public Group getGroup() {
-		return group;
-	}
 
-	public void setGroup(Group group) {
-		this.group = group;
-	}
-   
+    public BlockingQueue<ReceivedMessage> getDeliveryQueue() {
+        return deliveryQueue;
+    }
+
+    public Group getGroup() {
+        return group;
+    }
 }
