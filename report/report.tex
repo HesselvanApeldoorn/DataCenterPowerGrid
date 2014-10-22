@@ -1,0 +1,138 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[10pt]{article} % Default font size is 12pt, it can be changed here
+
+\usepackage[margin=2.5cm]{geometry} % Required to change the page size to A4
+\geometry{a4paper} % Set the page size to be A4 as opposed to the default US Letter
+
+\usepackage{graphicx} % Required for including pictures
+
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor} %colored text
+
+\usepackage{tabularx} % Improved tabular*
+\usepackage{tabulary} % Improved tabular*
+
+\usepackage[colorlinks,linkcolor = {blue}]{hyperref} % Creation of links
+
+\usepackage[toc,page]{appendix} % Easier creation of appendices
+
+\usepackage{listings} % Improved listings
+
+\usepackage{booktabs} % \toprule, \bottomrule, etc
+
+\usepackage{float} % Allows putting an [H] in \begin{figure} to specify the exact location of the figure
+
+\usepackage{wrapfig} % Allows in-line images such as the example fish picture
+
+\usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+
+\usepackage[square, numbers]{natbib} % Bibliography citation framework (in the style "[9]")
+
+\linespread{1.2} % Line spacing
+
+\setlength\parindent{0pt} % Uncomment to remove all indentation from paragraphs
+
+\graphicspath{{Pictures/}} % Specifies the directory where pictures are stored
+
+\usepackage{multirow} % Tabular multirows
+
+\usepackage{rotating} % Rotating boxes
+
+\usepackage{makecell} % Slash boxes
+
+\usepackage{pdflscape} % Landscape pages for pfd (automatic rotation)
+
+\usepackage{framed}
+\hyphenpenalty 100000
+\usepackage{eurosym}
+
+\usepackage{perpage} %the perpage package
+\MakePerPage{footnote} %the perpage package command
+
+\usepackage[intoc]{nomencl} % The nomenclature package
+\makenomenclature
+\renewcommand{\nomname}{Glossary}
+
+\usepackage{longtable}
+\usepackage{ltxtable}
+
+\usepackage{changepage} % Make indented paragraphs
+
+\usepackage{todonotes} % Put ToDo's in the doc (creates a list as well) 
+
+%----------------------------------------------------------------------------------------
+% MACROS
+%----------------------------------------------------------------------------------------
+
+%textlabel
+\makeatletter
+\newcommand*{\textlabel}[2]{%
+  \edef\@currentlabel{#1}% Set target label
+  \phantomsection% Correct hyper reference link
+  #1\label{#2}% Print and store label
+}
+\makeatother
+
+% \newcommand{\hltext}[1]{\textcolor{red}{#1}} % To highlight text
+\newcommand{\hltext}[1]{#1}
+
+\newcommand{\stakeholder}[1]{%
+	\stepcounter{stkh}% Add to counter
+	\textlabel{SH-\ifnum\value{stkh}<10 0\fi\thestkh}{#1}% Create text to be referenced from desired label  
+}
+
+\newcolumntype{s}{>{\hsize=.25\hsize}X} % New column size for tabularx
+
+%\renewcommand*{\lstlistingname}{Listing} % Change Prefix of the Listings, e.g., <name> 1. Caption 
+\renewcommand*{\lstlistlistingname}{List of Listings} % Change Title of List of Listings
+
+%\newcommand{\todo}[1]{(\textcolor{blue}{comment}\footnote{\textcolor{blue}{\bfseries ToDo: #1}})} % To make internal comments (to be removed in the deliverable)
+%\newcommand{\comment}[1]{}
+
+\title{\textsf{Distributed Systems | Power actions in a smart grid}}
+\author{Bart Wiegmans \& Hessel van Apeldoorn}
+\date{\today}
+
+\begin{document}
+\maketitle
+\newpage
+\section{Context/background}
+Since the beginning of the 21st century the roles of energy suppliers has changed.  In the beginning the suppliers only delivered energy to their customers for a fixed tariff, which the energy suppliers produced when there was a demand for it. Since the emergence of natural energy production from sources such as the sun and wind, the energy suppliers have to deal with a production of energy even if there is no demand for it.  This results in a problem where the energy supplier gets stuck with an overproduction of energy.  This problem in combination with several other factors led to the development of the Smart Grid.
+One of the features of a smart grid is an automatic load balancing based on production of energy. For example by shutting down or starting up a refrigerator in order to deal with the imbalance between production and consumption of energy on the grid.
+An extra functionality it offers in combination with the balancing function here above is to stimulate balancing of the grid by offering discounts on the energy price in case of overproduction or higher prices in case of energy shortage. By doing this local energy users, as for example server farms, can decide to reduce or increase its usage and so saving money and reducing the imbalance on the grid.\\
+ \\
+A second change in technology since the beginning of the 21st century is the shift from local computing to cloud computing.  Today more and more services and software are placed in the cloud. The cloud is a general name for a large network of servers connected with each other through the Internet. By connecting a large group of server the storage, computing power and other resources of individual servers can be combined to process more complex task or balance multiple tasks over the servers that are idle at that moment.\\
+\\
+A smart grid also has to be present in a data center. The data center itself receives a steady stream of power that it has to split among the nodes in its grid. nodes are in general servers in the data center. A server may sometimes require less power and may sometimes require more. A server should always receive its required amount of power. In general, servers are not turned off and thus in total there should always be enough power for all servers.
+\section{State of the Art}
+
+Advanced metering infrastructure
+Multicast  
+
+\section{Problem statement}
+
+as more and more computing take place on servers it becomes interesting if tasks are cost efficient. are the costs lower than the potential revenue generated by it. 
+
+\section{Relation to Distributed Systems}
+
+Dynamic host discovery, server can be added or removed. 
+Needs to be a broker, so a leader inside the system. 
+Server must be ensured that they actually can bid and use energy, so reliable channels to the broker are important.
+
+\section{Solution details}
+
+main solution
+algorithms
+IP multicast
+bully algorithm
+
+
+\section{Results}
+
+technical implementation
+Fault tolerance
+
+ 
+\end{document}
