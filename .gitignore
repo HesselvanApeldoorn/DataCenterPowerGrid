@@ -18,3 +18,8 @@ hs_err_pid*
 .idea/
 *.iml
 
+# tex stuff
+*.nlo
+*.out
+*.aux
+*.log
