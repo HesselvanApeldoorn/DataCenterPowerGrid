@@ -14,6 +14,6 @@ class DefaultHashMap<K,V> extends HashMap<K,V> {
 
     @Override
     public V get(Object key) {
-        return containsKey(key) ? get(key) : defaultValue;
+        return containsKey(key) ? super.get(key) : defaultValue;
     }
 }

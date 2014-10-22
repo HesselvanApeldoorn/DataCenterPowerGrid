@@ -12,6 +12,7 @@
 hs_err_pid*
 # emacs / unix backup files
 *~
+*#
 
 # intellij stuff
 .idea/

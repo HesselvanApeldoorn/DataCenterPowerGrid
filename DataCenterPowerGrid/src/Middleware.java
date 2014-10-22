@@ -20,7 +20,7 @@ class Middleware extends Thread {
     private Receiver        groupReceiver;
     private Sender          sender;
 
-    private SocketAddress   groupAddress;
+    private SocketAddress groupAddress;
 
     private BlockingQueue<DatagramPacket>  inputQueue;
     private BlockingQueue<DatagramPacket>  outputQueue;
@@ -49,9 +49,7 @@ class Middleware extends Thread {
         }
     }
 
-    public Middleware(DatagramSocket thePeerSocket,
-                      MulticastSocket theGroupSocket,
-                      SocketAddress theGroupAddress) {
+    public Middleware(DatagramSocket thePeerSocket, MulticastSocket theGroupSocket, SocketAddress theGroupAddress) {
         this.peerSocket     = thePeerSocket;
         this.groupSocket    = theGroupSocket;
         this.groupAddress   = theGroupAddress;
