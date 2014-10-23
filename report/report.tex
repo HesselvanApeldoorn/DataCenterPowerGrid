@@ -122,6 +122,17 @@ Needs to be a broker, so a leader inside the system.
 Server must be ensured that they actually can bid and use energy, so reliable channels to the broker are important.
 
 \section{Solution details}
+In our project several algorithms and techniques have been used. In this section we try to give a better inside in where and how these techniques were used.
+\subsection{IP multicast}
+IP multicast is the most important communication technique in our project. It works as follows in our project:\\
+A process creates a message which it marks as a message to be sent by multicast. The message is then put into the output queue of this process. When the sender thread of this process has time to sent the message, it encodes the message and sends the message to the queue of the group to which the process belongs. Every client of this group can now grab and decode the message that has been sent.
+IP multicast is used for sending messages within a group. There are a few kinds of messages: % TODO: explain what efort has been done to ensure reliable and ordered
+\begin{itemize}
+ \item \textbf{Sending of heartbeats:} The broker sends out heartbeats to all members within a group using multicast. When a member receives a heartbeatmessage, he will send back an acknowledgement message to the broker. This acknowledgement message is only send to the broker. As such, the technique used  to send back a message is unicast instead of multicast.\\
+ \item \textbf{Removing a member:} Whenever a member is non-responsive (e.g. when no acknowledgements of heartbeats are received), a message is sent to all members of the group to inform that this member is leaving the group. These messages are sent using multicast.\\
+ \item \textbf{Setting the energy price:} A broker sends a message with the energy price to all its client through multicast.\\
+\end{itemize}
+
 
 main solution
 algorithms
