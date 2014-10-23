@@ -3,10 +3,9 @@ import java.util.HashMap;
 import java.util.Set;
 import java.net.SocketAddress;
 
-/* A thread-safe versioned mapping from PID's to SocketAddresses that
- * represents the group. */
+/* A thread-safe mapping from PID's to SocketAddresses that represents
+ * the group. */
 class Group {
-    private long pid;
     private long version;
     private Map<Long, SocketAddress> pidToSocket;
     private Map<SocketAddress, Long> socketToPid;
@@ -14,7 +13,7 @@ class Group {
     public Group() {
         version         = 0;
         pidToSocket     = new HashMap<Long, SocketAddress>();
-        socketToPid     = new DefaultHashMap<SocketAddress, Long>(-1l);
+        socketToPid     = new DefaultHashMap<SocketAddress, Long>(Middleware.NO_PID);
     }
 
     public synchronized void add(long pid, SocketAddress address) {

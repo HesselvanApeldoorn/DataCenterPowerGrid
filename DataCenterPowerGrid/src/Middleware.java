@@ -14,6 +14,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 class Middleware extends Thread {
+    public final static long GROUP_PID = 0;
+    public final static long    NO_PID = -1;
+
     private DatagramSocket  peerSocket;
     private Receiver        peerReceiver;
     private MulticastSocket groupSocket;
@@ -28,11 +31,10 @@ class Middleware extends Thread {
 
     private HoldbackQueue peerQueue;
     private HoldbackQueue groupQueue;
+    private ResendBuffer  resendBuffer;
     private Group group;
 
     private Timer timer;
-
-
     private boolean stopped;
 
     public static class ReceivedMessage {
@@ -61,6 +63,8 @@ class Middleware extends Thread {
         this.sender         = new Sender(outputQueue, peerSocket);
         this.timer          = new Timer();
         this.group          = new Group();
+        this.resendBuffer   = new ResendBuffer();
+
         this.peerQueue      = new HoldbackQueue(this);
         this.groupQueue     = new HoldbackQueue(this);
     }
@@ -71,6 +75,7 @@ class Middleware extends Thread {
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
+            this.resendBuffer.addSentMessage(receiver_pid, msg);
         } catch (InterruptedException ex) {
             System.out.println("Dropped message because of interrupt");
         }
@@ -81,6 +86,7 @@ class Middleware extends Thread {
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
             this.outputQueue.put(packet);
+            this.resendBuffer.addSentMessage(GROUP_PID, msg);
         } catch (InterruptedException ex) {
             System.out.println("Dropped group message because of interrupt");
         }
@@ -176,6 +182,7 @@ class Middleware extends Thread {
                this.groupQueue.give(message);
                 for (ReceivedMessage deliverable : this.groupQueue.getDeliverableMessages()) {
                     this.deliveryQueue.put(message);
+                    this.resendBuffer.addDeliveredMulticast(message.sender, message.payload);
                 }
            } else {
                 this.peerQueue.give(message);
