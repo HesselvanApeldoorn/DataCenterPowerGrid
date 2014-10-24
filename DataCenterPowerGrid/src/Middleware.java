@@ -29,16 +29,19 @@ class Middleware extends Thread {
     private BlockingQueue<DatagramPacket>  outputQueue;
     private BlockingQueue<ReceivedMessage> deliveryQueue;
 
+    /* Ensure reliability */
     private HoldbackQueue peerQueue;
     private HoldbackQueue groupQueue;
     private ResendBuffer  sentMessages;
     private ResendBuffer  deliveredMulticasts;
+    private Sequencer     sequencer;
+
     private Group group;
 
     private Timer timer;
     private boolean stopped;
 
-    public static class ReceivedMessage {
+    public static class ReceivedMessage implements Comparable<ReceivedMessage> {
         public final long timestamp;
         public final long sender;
         public final DatagramPacket packet;
@@ -49,6 +52,12 @@ class Middleware extends Thread {
             this.sender    = thePid;
             this.packet    = thePacket;
             this.payload   = theMessage;
+        }
+
+        public int compareTo(ReceivedMessage msg) {
+            if (msg.sender != this.sender)
+                throw new IllegalArgumentException("Can't compare messages from different senders");
+            return this.payload.sequence_nr - msg.payload.sequence_nr;
         }
     }
 
@@ -66,24 +75,38 @@ class Middleware extends Thread {
         this.group          = new Group();
         this.sentMessages   = new ResendBuffer();
         this.deliveredMulticasts = new ResendBuffer();
-        this.peerQueue      = new HoldbackQueue(this);
-        this.groupQueue     = new HoldbackQueue(this);
+        this.peerQueue      = new HoldbackQueue();
+        this.groupQueue     = new HoldbackQueue();
+        this.sequencer      = new Sequencer();
     }
 
-    public void send(long receiver_pid, Message msg) {
-        SocketAddress address = this.group.getAddress(receiver_pid);
-        msg.is_multicast = false;
+    private void prepareMessage(long receiver, Message message) {
+        message.is_multicast = (receiver == GROUP_PID);
+        if (message.is_ordered) {
+            // theoretically, we can be raced between getting the
+            // sequence number and inserting it into the resend
+            // buffer. so, lock here to ensure that this doesn't
+            // happen
+            synchronized (this) {
+                message.sequence_nr = sequencer.next(receiver);
+                this.sentMessages.add(receiver, message);
+            }
+        }
+    }
+
+    public void send(long receiver, Message msg) {
+        prepareMessage(receiver, msg);
+        SocketAddress address = this.group.getAddress(receiver);
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
-            this.sentMessages.add(receiver_pid, msg);
         } catch (InterruptedException ex) {
             System.out.println("Dropped message because of interrupt");
         }
     }
 
     public void sendGroup(Message msg) {
-        msg.is_multicast = true;
+        prepareMessage(GROUP_PID, msg);
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
             this.outputQueue.put(packet);
@@ -180,14 +203,20 @@ class Middleware extends Thread {
     private void deliverMessage(ReceivedMessage message) throws InterruptedException {
         if (message.payload.is_ordered) {
             if (message.payload.is_multicast) {
-               this.groupQueue.give(message);
-                for (ReceivedMessage deliverable : this.groupQueue.getDeliverableMessages()) {
-                    this.deliveryQueue.put(message);
-                    this.deliveredMulticasts.add(message.sender, message.payload);
-                }
+               this.groupQueue.add(message);
+               // I don't think we can be raced here. Because there is
+               // only a single caller, namely our own thread :-)
+
+               // The HoldbackQueue gives us the messages in delivery
+               // order, so both the delivery queue and the
+               // ResendBuffer will get them in delivery order too
+               for (ReceivedMessage deliverable : this.groupQueue.getDeliverableMessages(message.sender)) {
+                   this.deliveryQueue.put(message);
+                   this.deliveredMulticasts.add(message.sender, message.payload);
+               }
            } else {
-                this.peerQueue.give(message);
-                for (ReceivedMessage deliverable : this.peerQueue.getDeliverableMessages()) {
+                this.peerQueue.add(message);
+                for (ReceivedMessage deliverable : this.peerQueue.getDeliverableMessages(message.sender)) {
                     this.deliveryQueue.put(deliverable);
                 }
             }

@@ -22,19 +22,11 @@ public class ResendBuffer {
         List<Message> list = messageLists.get(pid);
         if (list == null)
             return null;
-        int  left = 0;
-        int right = list.size();
-        while (left < right) {
-            int mid = (left + right) / 2;
-            int val = list.get(mid).sequence_nr;
-            if (val < sequence_nr)
-                left = mid + 1;
-            else if (val > sequence_nr)
-                right = mid;
-            else
-                return list.get(mid);
-        }
-        return null;
+        int first = list.get(0).sequence_nr;
+        int last = first + list.size() - 1;
+        if (first > sequence_nr || last < sequence_nr)
+            return null;
+        return list.get(sequence_nr - first);
     }
 
 }

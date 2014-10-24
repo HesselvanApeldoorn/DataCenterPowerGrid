@@ -8,7 +8,7 @@ class Sequencer {
         sequenceNrs = new DefaultHashMap<Long, Integer>(0);
     }
 
-    public synchronized next(long pid) {
+    public synchronized int next(long pid) {
         int lastNr = sequenceNrs.get(pid);
         sequenceNrs.put(pid, lastNr++);
         return lastNr;

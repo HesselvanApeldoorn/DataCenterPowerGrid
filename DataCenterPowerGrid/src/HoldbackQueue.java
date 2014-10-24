@@ -1,6 +1,6 @@
 import java.util.List;
-import java.util.ListIterator;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -11,55 +11,35 @@ class HoldbackQueue {
      * manner per peer. Thus, it doesn't guarantee causual or total
      * ordering, only per-peer FIFO ordering. Also note that multicast
      * ordering and peer-to-peer ordering must be kept separate! */
-    private LinkedList<Middleware.ReceivedMessage> queue;
-    private Map<Long, Integer>                 delivered;
-    public HoldbackQueue(Middleware theMiddleware) {
-        this.queue     = new LinkedList<Middleware.ReceivedMessage>();
+    private Map<Long, PriorityQueue<Middleware.ReceivedMessage>> messages;
+    private Map<Long, Integer>                                  delivered;
+
+    public HoldbackQueue() {
+        this.messages  = new HashMap<Long, PriorityQueue<Middleware.ReceivedMessage>>(10);
         this.delivered = new DefaultHashMap<Long, Integer>(100, 0);
     }
 
-    public synchronized void give(Middleware.ReceivedMessage message) {
+    public synchronized void add(Middleware.ReceivedMessage message) {
         // have we already delivered it?
         if (message.payload.sequence_nr <= delivered.get(message.sender))
             return;
-        // start iterating from the beginning
-        ListIterator<Middleware.ReceivedMessage> iterator = queue.listIterator(0);
-        while(iterator.hasNext()) {
-            Middleware.ReceivedMessage current = iterator.next();
-            if (current.sender == message.sender) {
-                // insert the messages in order so that they can be read
-                // in order when delivering them
-                while (current.payload.sequence_nr < message.payload.sequence_nr &&
-                       current.sender == message.sender &&
-                       iterator.hasNext())
-                    current = iterator.next();
-                if (current.sender != message.sender)  // overshoot!
-                    iterator.previous();
-                else if (current.payload.sequence_nr == message.payload.sequence_nr)
-                    return; // the other case of re-delivery (not yet delivered but already on queue)
-                break;
-            }
-        }
-        // either we are at the end of the list, or we are at a
-        // suitable place to insert the message on the queue
-        iterator.add(message);
+        if (!messages.containsKey(message.sender))
+            messages.put(message.sender, new PriorityQueue<Middleware.ReceivedMessage>(10));
+        messages.get(message.sender).offer(message);
     }
 
-    public synchronized List<Middleware.ReceivedMessage> getDeliverableMessages() {
-        LinkedList<Middleware.ReceivedMessage> messages   = new LinkedList<Middleware.ReceivedMessage>();
-        ListIterator<Middleware.ReceivedMessage> iterator = queue.listIterator(0);
-        // walk through the messages on the queue. if we can deliver
-        // them, remove them from the queue and mark the message
-        // delivered
-        while (iterator.hasNext()) {
-            Middleware.ReceivedMessage message = iterator.next();
-            int lastDelivered = delivered.get(message.sender);
-            if (lastDelivered + 1 == message.payload.sequence_nr) {
-                messages.add(message);
-                iterator.remove();
-                delivered.put(message.sender, message.payload.sequence_nr);
-            }
+    public synchronized List<Middleware.ReceivedMessage> getDeliverableMessages(long sender) {
+        List<Middleware.ReceivedMessage> deliverable = new LinkedList<Middleware.ReceivedMessage>();
+        PriorityQueue<Middleware.ReceivedMessage> queue = messages.get(sender);
+        if (queue == null)
+            return deliverable; // which is empty
+        while (queue.size() > 0) {
+            // head is next message
+            if (queue.peek().payload.sequence_nr == delivered.get(sender) + 1)
+                deliverable.add(queue.poll()); // add to list, remove from queue
+            else
+                break; // no more messages to deliver
         }
-        return messages;
+        return deliverable;
     }
 }
