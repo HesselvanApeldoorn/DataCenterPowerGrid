@@ -18,10 +18,9 @@ public class ResendBuffer {
         messageLists.get(pid).add(message);
     }
 
-
     public synchronized Message find(long pid, int sequence_nr) {
         List<Message> list = messageLists.get(pid);
-        if (list == null);
+        if (list == null)
             return null;
         int  left = 0;
         int right = list.size();
@@ -35,7 +34,7 @@ public class ResendBuffer {
             else
                 return list.get(mid);
         }
-	return null;
+        return null;
     }
 
 }

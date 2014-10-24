@@ -43,5 +43,9 @@ class Group {
     public synchronized Set<Long> getPids() {
         return pidToSocket.keySet();
     }
+
+    public synchronized boolean isAlive(long pid) {
+        return pidToSocket.containsKey(pid);
+    }
 }
 

@@ -31,7 +31,8 @@ class Middleware extends Thread {
 
     private HoldbackQueue peerQueue;
     private HoldbackQueue groupQueue;
-    private ResendBuffer  resendBuffer;
+    private ResendBuffer  sentMessages;
+    private ResendBuffer  deliveredMulticasts;
     private Group group;
 
     private Timer timer;
@@ -63,8 +64,8 @@ class Middleware extends Thread {
         this.sender         = new Sender(outputQueue, peerSocket);
         this.timer          = new Timer();
         this.group          = new Group();
-        this.resendBuffer   = new ResendBuffer();
-
+        this.sentMessages   = new ResendBuffer();
+        this.deliveredMulticasts = new ResendBuffer();
         this.peerQueue      = new HoldbackQueue(this);
         this.groupQueue     = new HoldbackQueue(this);
     }
@@ -75,7 +76,7 @@ class Middleware extends Thread {
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
-            this.resendBuffer.addSentMessage(receiver_pid, msg);
+            this.sentMessages.add(receiver_pid, msg);
         } catch (InterruptedException ex) {
             System.out.println("Dropped message because of interrupt");
         }
@@ -86,7 +87,7 @@ class Middleware extends Thread {
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
             this.outputQueue.put(packet);
-            this.resendBuffer.addSentMessage(GROUP_PID, msg);
+            this.sentMessages.add(GROUP_PID, msg);
         } catch (InterruptedException ex) {
             System.out.println("Dropped group message because of interrupt");
         }
@@ -182,7 +183,7 @@ class Middleware extends Thread {
                this.groupQueue.give(message);
                 for (ReceivedMessage deliverable : this.groupQueue.getDeliverableMessages()) {
                     this.deliveryQueue.put(message);
-                    this.resendBuffer.addDeliveredMulticast(message.sender, message.payload);
+                    this.deliveredMulticasts.add(message.sender, message.payload);
                 }
            } else {
                 this.peerQueue.give(message);
@@ -204,6 +205,8 @@ class Middleware extends Thread {
         return deliveryQueue;
     }
 
+    /* NB: changing the group makes no sense - all classes
+     * depend on some stability of pid's! */
     public Group getGroup() {
         return group;
     }
