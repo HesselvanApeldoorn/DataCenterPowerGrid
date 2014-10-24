@@ -21,21 +21,21 @@ public class ResendBuffer {
 
     public synchronized Message find(long pid, int sequence_nr) {
         List<Message> list = messageLists.get(pid);
-        if (list == null || list.size() == 0)
+        if (list == null);
             return null;
         int  left = 0;
         int right = list.size();
         while (left < right) {
-            int mid    = (left + right) / 2;
-            int needle = list.get(mid).sequence_nr;
-            if (needle > sequence_nr)
+            int mid = (left + right) / 2;
+            int val = list.get(mid).sequence_nr;
+            if (val < sequence_nr)
                 left = mid + 1;
-            else if (needle < sequence_nr)
+            else if (val > sequence_nr)
                 right = mid;
             else
                 return list.get(mid);
         }
-        return list.get(left).sequence_nr == sequence_nr ? list.get(left) : null;
+	return null;
     }
 
 }
