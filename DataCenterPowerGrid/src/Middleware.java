@@ -41,7 +41,7 @@ class Middleware extends Thread {
     private Timer timer;
     private boolean stopped;
 
-    public static class ReceivedMessage implements Comparable<ReceivedMessage> {
+    public static class ReceivedMessage {
         public final long timestamp;
         public final long sender;
         public final DatagramPacket packet;
@@ -52,12 +52,6 @@ class Middleware extends Thread {
             this.sender    = thePid;
             this.packet    = thePacket;
             this.payload   = theMessage;
-        }
-
-        public int compareTo(ReceivedMessage msg) {
-            if (msg.sender != this.sender)
-                throw new IllegalArgumentException("Can't compare messages from different senders");
-            return this.payload.sequence_nr - msg.payload.sequence_nr;
         }
     }
 

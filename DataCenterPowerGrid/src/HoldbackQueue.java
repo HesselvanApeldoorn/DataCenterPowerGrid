@@ -1,6 +1,7 @@
 import java.util.List;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -13,10 +14,18 @@ class HoldbackQueue {
      * ordering and peer-to-peer ordering must be kept separate! */
     private Map<Long, PriorityQueue<Middleware.ReceivedMessage>> messages;
     private Map<Long, Integer>                                  delivered;
+    private Comparator<Middleware.ReceivedMessage>             comparator;
+
+    private static class ReceivedMessageComparator implements Comparator<Middleware.ReceivedMessage> {
+        public int compare(Middleware.ReceivedMessage a, Middleware.ReceivedMessage b) {
+            return a.payload.sequence_nr - b.payload.sequence_nr;
+        }
+    }
 
     public HoldbackQueue() {
-        this.messages  = new HashMap<Long, PriorityQueue<Middleware.ReceivedMessage>>(10);
-        this.delivered = new DefaultHashMap<Long, Integer>(100, 0);
+        this.messages   = new HashMap<Long, PriorityQueue<Middleware.ReceivedMessage>>(10);
+        this.delivered  = new DefaultHashMap<Long, Integer>(100, 0);
+        this.comparator = new ReceivedMessageComparator();
     }
 
     public synchronized void add(Middleware.ReceivedMessage message) {
@@ -24,7 +33,7 @@ class HoldbackQueue {
         if (message.payload.sequence_nr <= delivered.get(message.sender))
             return;
         if (!messages.containsKey(message.sender))
-            messages.put(message.sender, new PriorityQueue<Middleware.ReceivedMessage>(10));
+            messages.put(message.sender, new PriorityQueue<Middleware.ReceivedMessage>(10, comparator));
         messages.get(message.sender).offer(message);
     }
 
