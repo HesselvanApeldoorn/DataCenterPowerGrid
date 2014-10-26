@@ -9,6 +9,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -55,6 +56,48 @@ class Middleware extends Thread {
         }
     }
 
+    private static class RetransmitRequest extends Message {
+        public final long sender;
+        public final int req_seq_nr;
+        public final boolean req_is_mc;
+
+        public RetransmitRequest(long sender, int req_seq_nr, boolean req_is_mc) {
+            this.sender     = sender;
+            this.req_seq_nr = req_seq_nr;
+            this.req_is_mc  = req_is_mc;
+        }
+    }
+
+
+    private static class RetransmitMessage extends Message {
+        public final long sender;
+        public final Message payload;
+        public RetransmitMessage(long sender, Message payload) {
+            this.sender = sender;
+            this.payload = payload;
+        }
+
+        public ReceivedMessage unpack() {
+            // hmm... not entirely happy here
+            return new ReceivedMessage(System.currentTimeMillis(), sender, null, payload);
+        }
+    }
+
+    private class Requester extends TimerTask {
+        public void run() {
+            for (HoldbackQueue.UndeliveredMessage r : peerQueue.getUndeliveredMessages()) {
+                if (group.isAlive(r.sender))
+                    send(r.sender, new RetransmitRequest(r.sender, r.sequence_nr, false), false); // unordered send
+            }
+            for (HoldbackQueue.UndeliveredMessage r : groupQueue.getUndeliveredMessages()) {
+                if (group.isAlive(r.sender))
+                    send(r.sender, new RetransmitRequest(r.sender, r.sequence_nr, true), false);
+                else
+                    sendGroup(new RetransmitRequest(r.sender, r.sequence_nr, true), false);
+            }
+        }
+    }
+
     public Middleware(DatagramSocket thePeerSocket, MulticastSocket theGroupSocket, SocketAddress theGroupAddress) {
         this.peerSocket     = thePeerSocket;
         this.groupSocket    = theGroupSocket;
@@ -74,8 +117,9 @@ class Middleware extends Thread {
         this.sequencer      = new Sequencer();
     }
 
-    private void prepareMessage(long receiver, Message message) {
+    private void prepareMessage(long receiver, Message message, boolean is_ordered) {
         message.is_multicast = (receiver == GROUP_PID);
+        message.is_ordered   = is_ordered;
         if (message.is_ordered) {
             // theoretically, we can be raced between getting the
             // sequence number and inserting it into the resend
@@ -88,8 +132,8 @@ class Middleware extends Thread {
         }
     }
 
-    public void send(long receiver, Message msg) {
-        prepareMessage(receiver, msg);
+    public void send(long receiver, Message msg, boolean is_ordered) {
+        prepareMessage(receiver, msg, is_ordered);
         SocketAddress address = this.group.getAddress(receiver);
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
@@ -99,8 +143,8 @@ class Middleware extends Thread {
         }
     }
 
-    public void sendGroup(Message msg) {
-        prepareMessage(GROUP_PID, msg);
+    public void sendGroup(Message msg, boolean is_ordered) {
+        prepareMessage(GROUP_PID, msg, is_ordered);
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
             this.outputQueue.put(packet);
@@ -109,6 +153,25 @@ class Middleware extends Thread {
             System.out.println("Dropped group message because of interrupt");
         }
     }
+
+    public void resend(long requester, RetransmitRequest req) {
+        if (req.is_multicast) {
+            // if it was multicast, it means we're asking the group for delivered
+            // messages of a now-dead group member
+            Message message = deliveredMulticasts.find(req.sender, req.sequence_nr);
+            if (message != null)
+                sendGroup(new RetransmitMessage(req.sender, message), false);
+        } else {
+            Message message = sentMessages.find(req.req_is_mc ? GROUP_PID : requester, req.sequence_nr);
+            if (message != null) {
+                if (req.req_is_mc)
+                    sendGroup(message, false);
+                else
+                    send(requester, message, false);
+            }
+        }
+    }
+
 
     public void run() {
         stopped = false;
@@ -121,7 +184,10 @@ class Middleware extends Thread {
                     System.err.println("Received undecodable message");
                     continue;
                 }
-                deliverMessage(message);
+                if (message.payload instanceof RetransmitRequest)
+                    resend(message.sender, (RetransmitRequest)message.payload);
+                else
+                    deliverMessage(message);
             }
         } catch (InterruptedException ex) {
             // guess somebody wanted us to stop
@@ -139,6 +205,7 @@ class Middleware extends Thread {
         sender.start();
         groupReceiver.start();
         peerReceiver.start();
+        timer.schedule(new Requester(), 100l, 100l);
     }
 
     private void teardown() {
@@ -195,7 +262,10 @@ class Middleware extends Thread {
     }
 
     private void deliverMessage(ReceivedMessage message) throws InterruptedException {
-        if (message.payload.is_ordered) {
+        if (message.payload instanceof RetransmitMessage) {
+            // deliver the re-transmitted message
+            deliverMessage(((RetransmitMessage)message.payload).unpack());
+        } else if (message.payload.is_ordered) {
             if (message.payload.is_multicast) {
                this.groupQueue.add(message);
                // I don't think we can be raced here. Because there is

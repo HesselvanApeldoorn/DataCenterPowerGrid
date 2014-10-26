@@ -7,6 +7,7 @@ import java.net.SocketAddress;
  * the group. */
 class Group {
     private long version;
+
     private Map<Long, SocketAddress> pidToSocket;
     private Map<SocketAddress, Long> socketToPid;
 
