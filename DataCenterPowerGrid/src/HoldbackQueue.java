@@ -1,4 +1,5 @@
 import java.util.List;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Comparator;
@@ -15,6 +16,16 @@ class HoldbackQueue {
     private Map<Long, PriorityQueue<Middleware.ReceivedMessage>> messages;
     private Map<Long, Integer>                                  delivered;
     private Comparator<Middleware.ReceivedMessage>             comparator;
+
+    public static class UndeliveredMessage {
+        public final long sender;
+        public final int sequence_nr;
+
+        public UndeliveredMessage(long sender, int seqnr) {
+            this.sender      = sender;
+            this.sequence_nr = seqnr;
+        }
+    }
 
     private static class ReceivedMessageComparator implements Comparator<Middleware.ReceivedMessage> {
         public int compare(Middleware.ReceivedMessage a, Middleware.ReceivedMessage b) {
@@ -51,4 +62,21 @@ class HoldbackQueue {
         }
         return deliverable;
     }
+
+    public synchronized List<UndeliveredMessage> getUndeliveredMessages() {
+        List<UndeliveredMessage> list = new ArrayList<UndeliveredMessage>();
+        for (Map.Entry<Long, PriorityQueue<Middleware.ReceivedMessage>> item : messages.entrySet()) {
+            long                                     sender = item.getKey();
+            PriorityQueue<Middleware.ReceivedMessage> queue = item.getValue();
+            if (queue.size() > 0) {
+                int lastDelivered = delivered.get(sender);
+                int firstInQueue  = queue.peek().payload.sequence_nr;
+                for (int i = lastDelivered + 1; i < firstInQueue; i++) {
+                    list.add(new UndeliveredMessage(sender, i));
+                }
+            }
+        }
+        return list;
+    }
+
 }
