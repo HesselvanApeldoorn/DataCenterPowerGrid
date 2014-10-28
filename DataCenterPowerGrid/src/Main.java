@@ -23,10 +23,7 @@ public class Main {
             Thread.sleep(1500);
             middleware.sendGroup(new Message(), false);
             Middleware.ReceivedMessage message = queue.take();
-            System.out.printf("Received: %s from %d\n", message.payload, message.sender);
-            if (message.sender == -1) {
-                middleware.getGroup().add(1, message.packet.getSocketAddress());
-            }
+            System.out.printf("Received: %s from %s\n", message.payload, message.packet.getSocketAddress());
         }
         middleware.shutdown();
     }
