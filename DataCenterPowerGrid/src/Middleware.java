@@ -265,7 +265,7 @@ class Middleware extends Thread {
         if (message.payload instanceof RetransmitMessage) {
             // deliver the re-transmitted message
             deliverMessage(((RetransmitMessage)message.payload).unpack());
-        } else if (message.payload.is_ordered) {
+        } else if (message.payload.is_ordered && message.sender != NO_PID) {
             if (message.payload.is_multicast) {
                this.groupQueue.add(message);
                // I don't think we can be raced here. Because there is
