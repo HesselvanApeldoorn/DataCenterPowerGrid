@@ -21,7 +21,7 @@ public class Main {
         BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
         for (int i = 0; i < 10; i++) {
             Thread.sleep(1500);
-            middleware.sendGroup(new Message());
+            middleware.sendGroup(new Message(), false);
             Middleware.ReceivedMessage message = queue.take();
             System.out.printf("Received: %s from %d\n", message.payload, message.sender);
             if (message.sender == -1) {

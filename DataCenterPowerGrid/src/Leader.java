@@ -23,12 +23,12 @@ public class Leader extends TimerTask {
                 dropMember(ack.getKey());
             }
         }
-        middleware.sendGroup(new HeartbeatMessage(now));
+        middleware.sendGroup(new HeartbeatMessage(now), false);
     }
 
     private void dropMember(long pid) {
         group.remove(pid);
-        middleware.sendGroup(new LeaveMessage(group.getVersion(), pid));
+        middleware.sendGroup(new LeaveMessage(group.getVersion(), pid), true);
     }
 
     public synchronized void receiveAcknowledge(Middleware.ReceivedMessage message) {
