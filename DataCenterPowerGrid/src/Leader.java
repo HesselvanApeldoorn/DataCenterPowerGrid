@@ -35,10 +35,8 @@ public class Leader extends TimerTask {
 
     private void dropMember(long pid) {
         group.remove(pid);
-        middleware.sendGroup(new LeaveMessage(group.getVersion(), pid), true);
+        middleware.sendGroup(new Member.Leave(group.getVersion(), pid), true);
     }
 
-    public synchronized void receiveAcknowledge(Middleware.ReceivedMessage message) {
-        lastAcks.put(message.sender, message.timestamp);
-    }
+
 }
