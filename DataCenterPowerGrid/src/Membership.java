@@ -9,7 +9,6 @@ class Membership {
     private boolean isLeader = false;
     private boolean canLead = false;
     private boolean inElection = false;
-    private long    mostRecentHeartbeat = -1;
     private long    pid;
 
     public Membership(Group theGroup, Middleware theMiddleware,
@@ -17,18 +16,8 @@ class Membership {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.canLead    = iCanLead;
-        this.middleware.getTimer().schedule(new Heartbeat(),
-                                            HEARTBEAT_PERIOD,
-                                            HEARTBEAT_PERIOD);
     }
 
 
-    private class Heartbeat extends TimerTask {
-        public void run() {
-            long now = System.currentTimeMillis();
-            /* TODO: Message is not yet fully implemented, code underneath will not run perfectly yet*/
-  
-        }
-    }
 
 }

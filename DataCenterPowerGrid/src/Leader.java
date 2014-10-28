@@ -14,6 +14,13 @@ public class Leader extends TimerTask {
         this.lastAcks = new HashMap<Long, Long>(100);
     }
 
+    public static class Heartbeat extends Message {
+        public final long timestamp;
+        public Heartbeat(long timestamp) {
+            this.timestamp = timestamp;
+        }
+    }
+
     @Override
     public synchronized void run() {
         long now = System.currentTimeMillis();
@@ -23,7 +30,7 @@ public class Leader extends TimerTask {
                 dropMember(ack.getKey());
             }
         }
-        middleware.sendGroup(new HeartbeatMessage(now), false);
+        middleware.sendGroup(new Heartbeat(now), false);
     }
 
     private void dropMember(long pid) {
