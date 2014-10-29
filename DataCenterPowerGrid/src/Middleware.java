@@ -25,6 +25,7 @@ class Middleware extends Thread {
     private Sender          sender;
 
     private SocketAddress groupAddress;
+    private Membership membership;
 
     private BlockingQueue<DatagramPacket>  inputQueue;
     private BlockingQueue<DatagramPacket>  outputQueue;
@@ -115,6 +116,7 @@ class Middleware extends Thread {
         this.peerQueue      = new HoldbackQueue();
         this.groupQueue     = new HoldbackQueue();
         this.sequencer      = new Sequencer();
+        this.membership     = new Membership(group, this, true, peerSocket.getLocalPort());
     }
 
     private void prepareMessage(long receiver, Message message, boolean is_ordered) {
