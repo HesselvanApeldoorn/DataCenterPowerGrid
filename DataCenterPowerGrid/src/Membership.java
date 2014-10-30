@@ -38,6 +38,7 @@ class Membership {
             	middleware.getTimer().schedule(election,
                         HEARTBEAT_PERIOD,
                         HEARTBEAT_PERIOD);
+                this.cancel(); // I'm busy with election, don't try to start new ones
             }  
         }
     }
@@ -51,6 +52,9 @@ class Membership {
         		System.out.println("I'm leader, my pid is: " + pid);
         		inElection = false;
 	        	this.cancel();
+	            middleware.getTimer().schedule(new Heartbeat(),
+                        HEARTBEAT_PERIOD,
+                        HEARTBEAT_PERIOD);  // done with election start heartbeats again
 	            middleware.getTimer().schedule(new Leader(group, middleware),
                         HEARTBEAT_PERIOD,
                         HEARTBEAT_PERIOD);  // I'm leader, start leader process
