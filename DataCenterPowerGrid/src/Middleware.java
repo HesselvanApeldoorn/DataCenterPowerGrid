@@ -10,6 +10,10 @@ import java.io.ObjectOutputStream;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -36,11 +40,12 @@ class Middleware extends Thread {
     private ResendBuffer  sentMessages;
     private ResendBuffer  deliveredMulticasts;
     private Sequencer     sequencer;
+    private Resender      resender;
 
     private Group group;
 
     private Timer timer;
-    private boolean stopped;
+    private boolean stopped; // TODO - make this depend on socket / group connected status
 
     public static class ReceivedMessage {
         public final long timestamp;
@@ -84,17 +89,51 @@ class Middleware extends Thread {
     }
 
     private class Requester extends TimerTask {
+        /* periodically request undelivered group messages */
         public void run() {
-            for (HoldbackQueue.UndeliveredMessage r : peerQueue.getUndeliveredMessages()) {
-                if (group.isAlive(r.sender))
-                    send(r.sender, new RetransmitRequest(r.sender, r.sequence_nr, false), false); // unordered send
-            }
             for (HoldbackQueue.UndeliveredMessage r : groupQueue.getUndeliveredMessages()) {
                 if (group.isAlive(r.sender))
                     send(r.sender, new RetransmitRequest(r.sender, r.sequence_nr, true), false);
-                else
+                else // maybe someone in the group delivered it, so request it from the group
                     sendGroup(new RetransmitRequest(r.sender, r.sequence_nr, true), false);
             }
+        }
+    }
+
+    private class Resender extends TimerTask {
+        /* resend unacknowledged peer-to-peer messages periodically */
+        private Map<Long, Set<Integer>> unacknowledged;
+        public Resender() {
+            unacknowledged = new HashMap<Long, Set<Integer>>();
+        }
+
+        public synchronized void run() {
+            /* TODO - this does not take congestion into account */
+            for (Map.Entry<Long, Set<Integer>> item : unacknowledged.entrySet()) {
+                long receiver = item.getKey();
+                if (!group.isAlive(receiver))
+                    continue;
+                for (Integer sequence_nr : item.getValue())
+                    resend(receiver, sequence_nr);
+            }
+        }
+
+        public synchronized void add(long receiver, int sequence_nr) {
+            if (!unacknowledged.containsKey(receiver))
+                unacknowledged.put(receiver, new HashSet<Integer>());
+            unacknowledged.get(receiver).add(sequence_nr);
+        }
+
+        public synchronized void acknowledge(long receiver, int sequence_nr) {
+            if (unacknowledged.containsKey(receiver))
+                unacknowledged.get(receiver).remove(sequence_nr);
+        }
+    }
+
+    private static class Acknowledge extends Message {
+        public final int ack_seq_nr;
+        public Acknowledge(int ack_seq_nr) {
+            this.ack_seq_nr = ack_seq_nr;
         }
     }
 
@@ -115,6 +154,7 @@ class Middleware extends Thread {
         this.peerQueue      = new HoldbackQueue();
         this.groupQueue     = new HoldbackQueue();
         this.sequencer      = new Sequencer();
+        this.resender       = new Resender();
     }
 
     private void prepareMessage(long receiver, Message message, boolean is_ordered) {
@@ -129,6 +169,9 @@ class Middleware extends Thread {
                 message.sequence_nr = sequencer.next(receiver);
                 this.sentMessages.add(receiver, message);
             }
+            if (!message.is_multicast) {
+                this.resender.add(receiver, message.sequence_nr);
+            }
         }
     }
 
@@ -139,7 +182,7 @@ class Middleware extends Thread {
 
     public void sendGroup(Message msg, boolean is_ordered) {
         prepareMessage(GROUP_PID, msg, is_ordered);
-        send(groupAddress, msg);
+        send(groupAddress, msg); // group address should just be gotten from the map
     }
 
     public void send(SocketAddress addr, Message msg) {
@@ -149,6 +192,13 @@ class Middleware extends Thread {
         } catch (InterruptedException ex) {
             System.out.println("Dropped group message because of interrupt");
         }
+    }
+
+    public void resend(long receiver, int sequence_nr) {
+        Message message = sentMessages.find(receiver, sequence_nr);
+        if (message != null)
+            // similarily as below, this is wrong
+            send(receiver, message, false);
     }
 
     public void resend(long requester, RetransmitRequest req) {
@@ -162,6 +212,9 @@ class Middleware extends Thread {
             Message message = sentMessages.find(req.req_is_mc ? GROUP_PID : requester, req.sequence_nr);
             if (message != null) {
                 if (req.req_is_mc)
+                    // this is wrong, this is telling people that the original
+                    // requested message is unordered. must wrap in retransmitmessage,
+                    // but what is my pid? could we use NO_PID to signal it is my own?
                     sendGroup(message, false);
                 else
                     send(requester, message, false);
@@ -203,6 +256,7 @@ class Middleware extends Thread {
         groupReceiver.start();
         peerReceiver.start();
         timer.schedule(new Requester(), 100l, 100l);
+        timer.schedule(resender, 125l, 100l);
     }
 
     private void teardown() {
@@ -263,6 +317,9 @@ class Middleware extends Thread {
             // deliver the re-transmitted message
             if (message.sender != NO_PID)
                 deliverMessage(((RetransmitMessage)message.payload).unpack());
+        } else if(message.payload instanceof Acknowledge) {
+            // we acknowledged a message
+            resender.acknowledge(message.sender, ((Acknowledge)message.payload).ack_seq_nr);
         } else if (message.payload.is_ordered) {
             if (message.sender == NO_PID)
                 return; // don't deliver ordered messages from unknown
@@ -271,7 +328,6 @@ class Middleware extends Thread {
                this.groupQueue.add(message);
                // I don't think we can be raced here. Because there is
                // only a single caller, namely our own thread :-)
-
                // The HoldbackQueue gives us the messages in delivery
                // order, so both the delivery queue and the
                // ResendBuffer will get them in delivery order too
@@ -280,6 +336,7 @@ class Middleware extends Thread {
                    this.deliveredMulticasts.add(message.sender, message.payload);
                }
            } else {
+                this.send(message.sender, new Acknowledge(message.payload.sequence_nr), false);
                 this.peerQueue.add(message);
                 for (ReceivedMessage deliverable : this.peerQueue.getDeliverableMessages(message.sender)) {
                     this.deliveryQueue.put(deliverable);
