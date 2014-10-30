@@ -34,7 +34,7 @@ class Membership {
             long now = System.currentTimeMillis();
             BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
             if (canLead && !inElection && ( mostRecentHeartbeat < now - 2 * HEARTBEAT_PERIOD)) { // Leader is unavailable, start election
-            	System.out.println("start election");
+            	System.out.println("start election");  // TODO: something going wrong here, elections are started twice somehow
             	middleware.getTimer().schedule(election,
                         HEARTBEAT_PERIOD*2,
                         HEARTBEAT_PERIOD*2);
@@ -87,4 +87,13 @@ class Membership {
     public void setLeader(boolean isLeader) {
     	this.isLeader = isLeader;
     }
+    
+    public void setPid(long pid) {
+    	this.pid = pid;
+    }
+
+	public void updatePid(Middleware.ReceivedMessage receivedMessage) {
+        AckJoinMessage message = (AckJoinMessage) receivedMessage.payload;
+        this.setPid(message.pid);
+	}
 }
