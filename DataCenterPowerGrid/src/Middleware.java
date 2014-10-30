@@ -308,4 +308,8 @@ class Middleware extends Thread {
     public Group getGroup() {
         return group;
     }
+    
+    public Membership getMembership() {
+    	return membership;
+    }
 }

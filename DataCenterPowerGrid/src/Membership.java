@@ -14,6 +14,7 @@ class Membership {
     private boolean inElection = false;
     private long    mostRecentHeartbeat = System.currentTimeMillis(); // TODO: set back to -1, test purposes
     private long    pid;
+	Election election;
 
     public Membership(Group theGroup, Middleware theMiddleware,
                       boolean iCanLead, long pid) {
@@ -24,6 +25,7 @@ class Membership {
                                             HEARTBEAT_PERIOD,
                                             HEARTBEAT_PERIOD);
         this.pid = pid;
+        election = new Election();
     }
 
 
@@ -31,19 +33,9 @@ class Membership {
         public void run() {
             long now = System.currentTimeMillis();
             BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
-        	Iterator<Middleware.ReceivedMessage> it = queue.iterator();
-        	while(it.hasNext()) {
-        	    Middleware.ReceivedMessage receivedMessage = it.next();
-        	    if(receivedMessage.payload instanceof ElectionMessage) {
-        	        ElectionMessage message = (ElectionMessage) receivedMessage.payload;
-        	        if (message.sender_pid < pid) {  // my pid is higher than broadcast pid
-        	        	middleware.send(message.sender_pid, new BullyElectionMessage(), false);
-        	        	middleware.getTimer().schedule(new Election(), HEARTBEAT_PERIOD, HEARTBEAT_PERIOD);
-        	        }
-        	    }
-        	}
-            if (canLead && mostRecentHeartbeat < now - 2 * HEARTBEAT_PERIOD) { // Leader is unavailable, start election
-                middleware.getTimer().schedule(new Election(),
+            if (canLead && !inElection && mostRecentHeartbeat < now - 2 * HEARTBEAT_PERIOD) { // Leader is unavailable, start election
+            	System.out.println("start election");
+            	middleware.getTimer().schedule(election,
                         HEARTBEAT_PERIOD,
                         HEARTBEAT_PERIOD);
                 this.cancel(); // I'm busy with election, don't listen to others
@@ -52,30 +44,38 @@ class Membership {
     }
 
     private class Election extends TimerTask {
-    	long leaderTime = System.currentTimeMillis();;
         public void run() {
-        	System.out.println("started election on pid: " + pid);
+        	inElection = true;
         	middleware.sendGroup(new ElectionMessage(pid), false);
-        	isLeader = true;
-            BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
-        	Iterator<Middleware.ReceivedMessage> it = queue.iterator();
-        	while(it.hasNext()) {
-        	    Middleware.ReceivedMessage receivedMessage = it.next();
-        	    System.out.println("received message");
-        	    if(receivedMessage.payload instanceof BullyElectionMessage) { // there is a process with higher pid 
-//        	    	queue.remove(receivedMessage);  // remove election message from queue, shouldn't appear in future elections
-        	        isLeader = false;
-        	    }
-        	}
         	// received no higher pids, this process is therefore leader
-        	if (isLeader && (leaderTime + 2*HEARTBEAT_PERIOD < System.currentTimeMillis())) { 
+        	if (isLeader) { 
         		System.out.println("I'm leader, my pid is: " + pid);
+        		inElection = false;
 	        	this.cancel();
 	            middleware.getTimer().schedule(new Heartbeat(),
                         HEARTBEAT_PERIOD,
                         HEARTBEAT_PERIOD);  // done with election start heartbeats again
+	            middleware.getTimer().schedule(new Leader(group, middleware),
+                        HEARTBEAT_PERIOD,
+                        HEARTBEAT_PERIOD);  // I'm leader
         	}
+        	isLeader = true;
         }
     }
+
+	public void participateElection(ElectionMessage message) {
+		if (message.sender_pid < pid) {  // my pid is higher than broadcast pid
+        	System.out.println("Sent bully message");
+        	middleware.send(message.sender_pid, new BullyElectionMessage(), false);
+        	middleware.getTimer().schedule(election, HEARTBEAT_PERIOD, HEARTBEAT_PERIOD);
+        }
+		
+	}
+
+	public void cancelElection() {
+		this.inElection = false;
+		this.isLeader = false;
+		this.election.cancel();
+	}
 
 }

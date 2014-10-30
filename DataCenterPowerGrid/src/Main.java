@@ -18,14 +18,16 @@ public class Main {
         groupSocket.joinGroup(groupAddress.getAddress());
         Middleware middleware          = new Middleware(peerSocket, groupSocket, groupAddress);
         middleware.start();
+        Dispatcher dispatcher = new Dispatcher(middleware);
+        dispatcher.start();
         BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep(1500);
-            middleware.sendGroup(new Message(), false);
-            Middleware.ReceivedMessage message = queue.take();
-            System.out.printf("Received: %s from %s\n", message.payload, message.packet.getSocketAddress());
-        }
-        middleware.shutdown();
+//        for (int i = 0; i < 10; i++) {
+//            Thread.sleep(1500);
+//            middleware.sendGroup(new Message(), false);
+//            Middleware.ReceivedMessage message = queue.take();
+//            System.out.printf("Received: %s from %s\n", message.payload, message.packet.getSocketAddress());
+//        }
+//        middleware.shutdown();
     }
 
 
