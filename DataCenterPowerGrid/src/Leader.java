@@ -23,6 +23,13 @@ public class Leader extends TimerTask {
         }
     }
 
+    public static class Welcome extends Message {
+        public final long pid;
+        public Welcome(long pid) {
+            this.pid = pid;
+        }
+    }
+
     @Override
     public synchronized void run() {
         long now  = System.currentTimeMillis();
@@ -41,6 +48,7 @@ public class Leader extends TimerTask {
         if (sender == Middleware.NO_PID) {
             sender = group.nextPid();
             group.add(sender, address);
+            middleware.send(sender, new Welcome(sender), true);
             middleware.sendGroup(new Member.Join(group.getVersion(), sender, address), true);
         }
         lifeSigns.put(sender, timestamp);

@@ -78,4 +78,12 @@ class Member {
         }
     }
 
+    public void onWelcome(Leader.Welcome welcome) {
+        this.pid = welcome.pid;
+    }
+
+    public long getPid() {
+        return this.pid;
+    }
+
 }
