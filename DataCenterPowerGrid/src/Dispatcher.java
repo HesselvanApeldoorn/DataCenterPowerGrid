@@ -4,11 +4,13 @@ import java.util.concurrent.BlockingQueue;
 
 
 public class Dispatcher extends Thread {
-	Middleware middleware;
+	private Middleware middleware;
+	private Leader leader;
 	boolean stopped;
 	
-	public Dispatcher(Middleware middleware) {
+	public Dispatcher(Middleware middleware, Leader leader) {
 		this.middleware = middleware;
+		this.leader = leader;
 		stopped = false;
 	}
 	
@@ -22,11 +24,19 @@ public class Dispatcher extends Thread {
 			} catch (InterruptedException e) {
 				System.out.println("Couldn't take message from queue");
 			}
+			System.out.println(middleware.getGroup().getPids());
+				System.out.println(middleware.getGroup().getAddress(1));
     	    if (receivedMessage.payload instanceof ElectionMessage) {
-    	        ElectionMessage message = (ElectionMessage) receivedMessage.payload;
-    	        middleware.getMembership().participateElection(message);
+    	        middleware.getMembership().participateElection(receivedMessage);
     	    } else if (receivedMessage.payload instanceof BullyElectionMessage) {
     	    	middleware.getMembership().cancelElection();
+    	    } else if (receivedMessage.payload instanceof HeartbeatMessage) {
+    	    	middleware.getMembership().updateHeartbeat(receivedMessage);
+    	    } else if(receivedMessage.payload instanceof JoinMessage) {
+    	    	if (middleware.getMembership().isLeader())
+    	    		this.leader.handoutPid(receivedMessage);
+    	    } else if (receivedMessage.payload instanceof AckJoinMessage) {
+    	    	middleware.getGroup().applyJoin(receivedMessage);
     	    } else { // TODO: not implemented yet, how to handle other messages?
     	    	System.out.println("received message, thats not handled yet: " + receivedMessage);
     	    }

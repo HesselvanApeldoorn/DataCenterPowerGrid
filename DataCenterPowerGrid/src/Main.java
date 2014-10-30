@@ -18,7 +18,14 @@ public class Main {
         groupSocket.joinGroup(groupAddress.getAddress());
         Middleware middleware          = new Middleware(peerSocket, groupSocket, groupAddress);
         middleware.start();
-        Dispatcher dispatcher = new Dispatcher(middleware);
+        Leader leader         = new Leader(middleware.getGroup(), middleware);
+        if (argv.length > 0 && argv[0].equals("leader")) {
+        	middleware.getMembership().setLeader(true);
+        	middleware.getTimer().schedule(leader,
+                    Membership.HEARTBEAT_PERIOD,
+                    Membership.HEARTBEAT_PERIOD);  // I'm leader, start leader process
+        }
+        Dispatcher dispatcher = new Dispatcher(middleware, leader);
         dispatcher.start();
         BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
 //        for (int i = 0; i < 10; i++) {

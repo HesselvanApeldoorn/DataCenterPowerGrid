@@ -3,6 +3,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.net.SocketAddress;
 
+
 /* A thread-safe mapping from PID's to SocketAddresses that represents
  * the group. */
 class Group {
@@ -16,7 +17,7 @@ class Group {
         pidToSocket     = new HashMap<Long, SocketAddress>();
         socketToPid     = new DefaultHashMap<SocketAddress, Long>(Middleware.NO_PID);
     }
-
+    
     public synchronized void add(long pid, SocketAddress address) {
         pidToSocket.put(pid, address);
         socketToPid.put(address, pid);
@@ -48,5 +49,10 @@ class Group {
     public synchronized boolean isAlive(long pid) {
         return pidToSocket.containsKey(pid);
     }
+
+	public void applyJoin(Middleware.ReceivedMessage receivedMessage) {
+        AckJoinMessage message = (AckJoinMessage) receivedMessage.payload;
+        this.add(message.pid, receivedMessage.packet.getSocketAddress());
+	}
 }
 

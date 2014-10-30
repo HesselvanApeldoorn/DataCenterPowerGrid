@@ -117,6 +117,7 @@ class Middleware extends Thread {
         this.groupQueue     = new HoldbackQueue();
         this.sequencer      = new Sequencer();
         this.membership     = new Membership(group, this, true, peerSocket.getLocalPort());  // TODO: dynamic discovery: change pid such that it uses the pid assigned by the leader
+        this.sendGroup(new JoinMessage(), false); // not sure if ordered or not..
     }
 
     private void prepareMessage(long receiver, Message message, boolean is_ordered) {

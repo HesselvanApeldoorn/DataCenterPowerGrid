@@ -10,7 +10,7 @@ class Membership {
     private Group   group;
     private Middleware middleware;
     private boolean isLeader = false;
-    private boolean canLead = false;
+	private boolean canLead = false;
     private boolean inElection = false;
     private long    mostRecentHeartbeat = System.currentTimeMillis(); // TODO: set back to -1, test purposes
     private long    pid;
@@ -33,11 +33,11 @@ class Membership {
         public void run() {
             long now = System.currentTimeMillis();
             BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
-            if (canLead && !inElection && mostRecentHeartbeat < now - 2 * HEARTBEAT_PERIOD) { // Leader is unavailable, start election
+            if (canLead && !inElection && ( mostRecentHeartbeat < now - 2 * HEARTBEAT_PERIOD)) { // Leader is unavailable, start election
             	System.out.println("start election");
             	middleware.getTimer().schedule(election,
-                        HEARTBEAT_PERIOD,
-                        HEARTBEAT_PERIOD);
+                        HEARTBEAT_PERIOD*2,
+                        HEARTBEAT_PERIOD*2);
             }  
         }
     }
@@ -49,17 +49,18 @@ class Membership {
         	// received no higher pids, this process is therefore leader
         	if (isLeader) { 
         		System.out.println("I'm leader, my pid is: " + pid);
-        		inElection = false;
 	        	this.cancel();
 	            middleware.getTimer().schedule(new Leader(group, middleware),
                         HEARTBEAT_PERIOD,
                         HEARTBEAT_PERIOD);  // I'm leader, start leader process
+        		inElection = false;
         	}
         	isLeader = true;
         }
     }
 
-	public void participateElection(ElectionMessage message) {
+	public void participateElection(Middleware.ReceivedMessage receivedMessage) {
+        ElectionMessage message = (ElectionMessage) receivedMessage.payload;
 		if (message.sender_pid < pid) {  // my pid is higher than broadcast pid
         	System.out.println("Sent bully message");
         	middleware.send(message.sender_pid, new BullyElectionMessage(), false);
@@ -73,4 +74,17 @@ class Membership {
 		this.election.cancel();
 		this.mostRecentHeartbeat = System.currentTimeMillis();
 	}
+
+	public void updateHeartbeat(Middleware.ReceivedMessage receivedMessage) {
+        HeartbeatMessage message = (HeartbeatMessage) receivedMessage.payload;
+		this.mostRecentHeartbeat = message.timeStamp;
+	}
+	
+    public boolean isLeader() {
+		return isLeader;
+	}
+    
+    public void setLeader(boolean isLeader) {
+    	this.isLeader = isLeader;
+    }
 }
