@@ -6,36 +6,33 @@ import java.util.Timer;
 class Member {
     public final static long HEARTBEAT_PERIOD = 5000;
 
-    private Group   group;
+    private Group      group;
     private Middleware middleware;
-    private boolean isLeader = false;
-    private boolean canLead = false;
-    private boolean inElection = false;
-    private long    pid;
-    private long    lastHeartbeat;
+    private boolean    isLeader = false;
+    private boolean     canLead = false;
+    private boolean  inElection = false;
+    private long            pid = Middleware.NO_PID;
+    private long  lastHeartbeat = -1;
 
     public Member(Group theGroup, Middleware theMiddleware, boolean iCanLead) {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.canLead    = iCanLead;
+        this.middleware.getTimer().schedule(new Election(), 2*Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
     }
 
     public class Election extends TimerTask {
         @Override
         public void run() {
             long now = System.currentTimeMillis();
-            if (lastHeartbeat < (now - 2 * HEARTBEAT_PERIOD)) {
-                
+            if (lastHeartbeat < (now - 2*Leader.HEARTBEAT_PERIOD)) {
+
             }
         }
     }
 
     public static class Alive extends Message {
         // nothing to do here, move along
-    }
-
-    public static class JoinRequest extends Message {
-        // ehm, same as alive request?
     }
 
    public static class Leave extends Message {
@@ -59,11 +56,11 @@ class Member {
         }
     }
 
-    public void onHeartbeat(long sender, long timestamp, Leader.Heartbeat message) {
+    public void onHeartbeat(long sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
         // in theory, compute the difference between our received timestamp and
         // the leaders timestamp. In practice, just reply saying you're alive
-        lastHeartbeat = System.currentTimeMillis();
-        middleware.send(sender, new Alive(), false);
+        lastHeartbeat = timestamp;
+        middleware.send(address, new Alive());
     }
 
     public void onJoin(Join request) {
@@ -71,6 +68,7 @@ class Member {
             group.add(request.member, request.address);
         } else {
             // hmm it's likely this request comes from a different leader.
+            // (that should be the only reason it goes out of sync)
         }
     }
 

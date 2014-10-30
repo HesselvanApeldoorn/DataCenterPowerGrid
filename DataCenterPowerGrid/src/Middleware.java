@@ -134,21 +134,18 @@ class Middleware extends Thread {
 
     public void send(long receiver, Message msg, boolean is_ordered) {
         prepareMessage(receiver, msg, is_ordered);
-        SocketAddress address = this.group.getAddress(receiver);
-        DatagramPacket packet = this.encodeMessage(address, msg);
-        try {
-            this.outputQueue.put(packet);
-        } catch (InterruptedException ex) {
-            System.out.println("Dropped message because of interrupt");
-        }
+        send(this.group.getAddress(receiver), msg);
     }
 
     public void sendGroup(Message msg, boolean is_ordered) {
         prepareMessage(GROUP_PID, msg, is_ordered);
-        DatagramPacket packet = this.encodeMessage(groupAddress, msg);
+        send(groupAddress, msg);
+    }
+
+    public void send(SocketAddress addr, Message msg) {
+        DatagramPacket packet = this.encodeMessage(addr, msg);
         try {
             this.outputQueue.put(packet);
-            this.sentMessages.add(GROUP_PID, msg);
         } catch (InterruptedException ex) {
             System.out.println("Dropped group message because of interrupt");
         }
@@ -264,7 +261,8 @@ class Middleware extends Thread {
     private void deliverMessage(ReceivedMessage message) throws InterruptedException {
         if (message.payload instanceof RetransmitMessage) {
             // deliver the re-transmitted message
-            deliverMessage(((RetransmitMessage)message.payload).unpack());
+            if (message.sender != NO_PID)
+                deliverMessage(((RetransmitMessage)message.payload).unpack());
         } else if (message.payload.is_ordered) {
             if (message.sender == NO_PID)
                 return; // don't deliver ordered messages from unknown

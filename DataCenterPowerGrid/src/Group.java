@@ -7,12 +7,13 @@ import java.net.SocketAddress;
  * the group. */
 class Group {
     private int version;
-
+    private long nextPid;
     private Map<Long, SocketAddress> pidToSocket;
     private Map<SocketAddress, Long> socketToPid;
 
     public Group() {
         version         = 0;
+        nextPid         = 0l;
         pidToSocket     = new HashMap<Long, SocketAddress>();
         socketToPid     = new DefaultHashMap<SocketAddress, Long>(Middleware.NO_PID);
     }
@@ -21,9 +22,11 @@ class Group {
         pidToSocket.put(pid, address);
         socketToPid.put(address, pid);
         version += 1;
+        nextPid = (pid > nextPid ? pid : nextPid);
     }
 
     public synchronized void remove(long pid) {
+        // TODO we should rather use tombstones
         socketToPid.remove(pidToSocket.get(pid));
         pidToSocket.remove(pid);
         version += 1;
@@ -41,12 +44,12 @@ class Group {
         return version;
     }
 
-    public synchronized Set<Long> getPids() {
-        return pidToSocket.keySet();
-    }
-
     public synchronized boolean isAlive(long pid) {
         return pidToSocket.containsKey(pid);
+    }
+
+    public synchronized long nextPid() {
+        return ++nextPid;
     }
 }
 
