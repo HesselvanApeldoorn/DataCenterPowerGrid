@@ -38,7 +38,7 @@ class Membership {
             	middleware.getTimer().schedule(election,
                         HEARTBEAT_PERIOD,
                         HEARTBEAT_PERIOD);
-                this.cancel(); // I'm busy with election, don't listen to others
+                this.cancel(); // I'm busy with election, don't try to start new ones
             }  
         }
     }
@@ -57,7 +57,7 @@ class Membership {
                         HEARTBEAT_PERIOD);  // done with election start heartbeats again
 	            middleware.getTimer().schedule(new Leader(group, middleware),
                         HEARTBEAT_PERIOD,
-                        HEARTBEAT_PERIOD);  // I'm leader
+                        HEARTBEAT_PERIOD);  // I'm leader, start leader process
         	}
         	isLeader = true;
         }
@@ -69,7 +69,6 @@ class Membership {
         	middleware.send(message.sender_pid, new BullyElectionMessage(), false);
         	middleware.getTimer().schedule(election, HEARTBEAT_PERIOD, HEARTBEAT_PERIOD);
         }
-		
 	}
 
 	public void cancelElection() {
@@ -77,5 +76,4 @@ class Membership {
 		this.isLeader = false;
 		this.election.cancel();
 	}
-
 }
