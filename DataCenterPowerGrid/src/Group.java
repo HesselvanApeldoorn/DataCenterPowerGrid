@@ -52,7 +52,7 @@ class Group {
 
 	public void applyJoin(Middleware.ReceivedMessage receivedMessage) {
         AckJoinMessage message = (AckJoinMessage) receivedMessage.payload;
-        this.add(message.pid, receivedMessage.packet.getSocketAddress());
+        this.add(message.pid, message.address);
 	}
 }
 

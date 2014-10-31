@@ -40,6 +40,6 @@ public class Leader extends TimerTask {
     
     public synchronized void handoutPid(Middleware.ReceivedMessage receivedMessage) {
         JoinMessage message = (JoinMessage) receivedMessage.payload;
-        middleware.sendGroup(new AckJoinMessage(pidCounter++), false);
+        middleware.sendGroup(new AckJoinMessage(pidCounter++, receivedMessage.packet.getSocketAddress()), false);
     }
 }
