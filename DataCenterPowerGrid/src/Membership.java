@@ -74,7 +74,7 @@ class Membership {
 	public void updateHeartbeat(Middleware.ReceivedMessage receivedMessage) {
         HeartbeatMessage message = (HeartbeatMessage) receivedMessage.payload;
 		this.mostRecentHeartbeat = message.timeStamp;
-		middleware.send(0, new AckHeartbeatMessage(), false);  // TODO: pid shouldn't be 0, should be retrieved from leader process instead, but it is the default for the first leader
+		middleware.send(receivedMessage.sender, new AckHeartbeatMessage(), false);  // TODO: pid shouldn't be 0, should be retrieved from leader process instead, but it is the default for the first leader
 	} // TODO: leader pid should be retrievable from ackjoinmessage or heartbeatmessage
 	
     public boolean isLeader() {
@@ -94,7 +94,5 @@ class Membership {
         this.pid = message.pid;
         this.group = message.group;
         middleware.setGroup(message.group);
-        System.out.println(" applying join, group pids: " + group.getPids());
-        System.out.println("successfully updated pid and group");
 	}
 }

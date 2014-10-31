@@ -32,7 +32,6 @@ class Group implements Serializable {
     }
 
     public synchronized SocketAddress getAddress(long pid) {
-    	System.out.println("requesting address of pid: " + pid);
         return pidToSocket.get(pid);
     }
 

@@ -137,8 +137,7 @@ class Middleware extends Thread {
 
     public void send(long receiver, Message msg, boolean is_ordered) {
         prepareMessage(receiver, msg, is_ordered);
-        System.out.print("sending " + msg.getClass() + " to receiver: ");
-        System.out.println(this.getGroup().getAddress(receiver));
+        System.out.println("sending " + msg.getClass() + " to receiver: " + receiver);
         SocketAddress address = this.getGroup().getAddress(receiver);
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
@@ -149,7 +148,7 @@ class Middleware extends Thread {
     }
 
     public void sendGroup(Message msg, boolean is_ordered) {
-        System.out.print("sending multicast " + msg.getClass() + " to receiver: ");
+        System.out.println("sending multicast " + msg.getClass());
         prepareMessage(GROUP_PID, msg, is_ordered);
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
