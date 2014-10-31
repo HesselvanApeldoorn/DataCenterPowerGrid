@@ -27,7 +27,7 @@ public class Main {
         }
         Dispatcher dispatcher = new Dispatcher(middleware, leader);
         dispatcher.start();
-        BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
+//        BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
 //        for (int i = 0; i < 10; i++) {
 //            Thread.sleep(1500);
 //            middleware.sendGroup(new Message(), false);

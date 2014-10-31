@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.net.SocketAddress;
 
 
+
 /* A thread-safe mapping from PID's to SocketAddresses that represents
  * the group. */
 class Group implements Serializable {
@@ -54,6 +55,11 @@ class Group implements Serializable {
 	public void applyJoin(Middleware.ReceivedMessage receivedMessage) {
         AckJoinMessage message = (AckJoinMessage) receivedMessage.payload;
         this.add(message.pid, message.address);
+	}
+
+	public void removeProcess(Middleware.ReceivedMessage receivedMessage) {
+        LeaveMessage message = (LeaveMessage) receivedMessage.payload;
+		this.remove(message.pid);
 	}
 }
 

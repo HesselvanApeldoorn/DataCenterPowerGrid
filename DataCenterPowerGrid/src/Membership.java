@@ -9,7 +9,7 @@ class Membership {
     private boolean isLeader = false;
 	private boolean canLead = false;
     private boolean inElection = false;
-    private long    mostRecentHeartbeat = System.currentTimeMillis(); // TODO: set back to -1, test purposes
+    private long    mostRecentHeartbeat = -1;
     private long    pid;
 	Election election;
 
@@ -23,6 +23,7 @@ class Membership {
                                             HEARTBEAT_PERIOD);
         this.pid = pid;
         election = new Election();
+        this.mostRecentHeartbeat = System.currentTimeMillis();
     }
 
 
@@ -74,8 +75,8 @@ class Membership {
 	public void updateHeartbeat(Middleware.ReceivedMessage receivedMessage) {
         HeartbeatMessage message = (HeartbeatMessage) receivedMessage.payload;
 		this.mostRecentHeartbeat = message.timeStamp;
-		middleware.send(receivedMessage.sender, new AckHeartbeatMessage(), false);  // TODO: pid shouldn't be 0, should be retrieved from leader process instead, but it is the default for the first leader
-	} // TODO: leader pid should be retrievable from ackjoinmessage or heartbeatmessage
+		middleware.send(receivedMessage.sender, new AckHeartbeatMessage(), false);
+	}
 	
     public boolean isLeader() {
 		return isLeader;

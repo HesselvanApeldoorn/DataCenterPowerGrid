@@ -37,6 +37,8 @@ public class Dispatcher extends Thread {
     	    		this.leader.handoutPid(receivedMessage);
     	    } else if (receivedMessage.payload instanceof AckJoinMessage) {
     	    	middleware.getMembership().applyJoin(receivedMessage);
+    	    } else if (receivedMessage.payload instanceof LeaveMessage) {
+    	    	middleware.getGroup().removeProcess(receivedMessage);
     	    } else { // TODO: not implemented yet, how to handle other messages?
     	    	System.out.println("received message, thats not handled yet: " + receivedMessage.packet.getClass());
     	    }
