@@ -1,7 +1,4 @@
-import java.util.Iterator;
 import java.util.TimerTask;
-import java.util.Timer;
-import java.util.concurrent.BlockingQueue;
 
 
 class Membership {
@@ -32,9 +29,9 @@ class Membership {
     private class Heartbeat extends TimerTask {
         public void run() {
             long now = System.currentTimeMillis();
-            BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
             if (canLead && !inElection && ( mostRecentHeartbeat < now - 2 * HEARTBEAT_PERIOD)) { // Leader is unavailable, start election
             	System.out.println("start election");  // TODO: something going wrong here, elections are started twice somehow
+            	middleware.sendGroup(new ElectionMessage(pid), false);
             	middleware.getTimer().schedule(election,
                         HEARTBEAT_PERIOD*2,
                         HEARTBEAT_PERIOD*2);
@@ -45,7 +42,6 @@ class Membership {
     private class Election extends TimerTask {
         public void run() {
         	inElection = true;
-        	middleware.sendGroup(new ElectionMessage(pid), false);
         	// received no higher pids, this process is therefore leader
         	if (isLeader) { 
         		System.out.println("I'm leader, my pid is: " + pid);
@@ -78,7 +74,8 @@ class Membership {
 	public void updateHeartbeat(Middleware.ReceivedMessage receivedMessage) {
         HeartbeatMessage message = (HeartbeatMessage) receivedMessage.payload;
 		this.mostRecentHeartbeat = message.timeStamp;
-	}
+		middleware.send(0, new AckHeartbeatMessage(), false);  // TODO: pid shouldn't be 0, should be retrieved from leader process instead, but it is the default for the first leader
+	} // TODO: leader pid should be retrievable from ackjoinmessage or heartbeatmessage
 	
     public boolean isLeader() {
 		return isLeader;
@@ -92,8 +89,12 @@ class Membership {
     	this.pid = pid;
     }
 
-	public void updatePid(Middleware.ReceivedMessage receivedMessage) {
+	public void applyJoin(Middleware.ReceivedMessage receivedMessage) {
         AckJoinMessage message = (AckJoinMessage) receivedMessage.payload;
-        this.setPid(message.pid);
+        this.pid = message.pid;
+        this.group = message.group;
+        middleware.setGroup(message.group);
+        System.out.println(" applying join, group pids: " + group.getPids());
+        System.out.println("successfully updated pid and group");
 	}
 }

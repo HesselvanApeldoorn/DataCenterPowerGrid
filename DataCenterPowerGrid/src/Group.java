@@ -1,12 +1,13 @@
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
+import java.io.Serializable;
 import java.net.SocketAddress;
 
 
 /* A thread-safe mapping from PID's to SocketAddresses that represents
  * the group. */
-class Group {
+class Group implements Serializable {
     private long version;
 
     private Map<Long, SocketAddress> pidToSocket;
@@ -31,6 +32,7 @@ class Group {
     }
 
     public synchronized SocketAddress getAddress(long pid) {
+    	System.out.println("requesting address of pid: " + pid);
         return pidToSocket.get(pid);
     }
 

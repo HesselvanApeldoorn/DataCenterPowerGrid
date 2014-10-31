@@ -87,11 +87,11 @@ class Middleware extends Thread {
     private class Requester extends TimerTask {
         public void run() {
             for (HoldbackQueue.UndeliveredMessage r : peerQueue.getUndeliveredMessages()) {
-                if (group.isAlive(r.sender))
+                if (getGroup().isAlive(r.sender))
                     send(r.sender, new RetransmitRequest(r.sender, r.sequence_nr, false), false); // unordered send
             }
             for (HoldbackQueue.UndeliveredMessage r : groupQueue.getUndeliveredMessages()) {
-                if (group.isAlive(r.sender))
+                if (getGroup().isAlive(r.sender))
                     send(r.sender, new RetransmitRequest(r.sender, r.sequence_nr, true), false);
                 else
                     sendGroup(new RetransmitRequest(r.sender, r.sequence_nr, true), false);
@@ -110,13 +110,13 @@ class Middleware extends Thread {
         this.groupReceiver  = new Receiver(inputQueue, groupSocket);
         this.sender         = new Sender(outputQueue, peerSocket);
         this.timer          = new Timer();
-        this.group          = new Group();
+        this.setGroup(new Group());
         this.sentMessages   = new ResendBuffer();
         this.deliveredMulticasts = new ResendBuffer();
         this.peerQueue      = new HoldbackQueue();
         this.groupQueue     = new HoldbackQueue();
         this.sequencer      = new Sequencer();
-        this.membership     = new Membership(group, this, true, peerSocket.getLocalPort());  // TODO: dynamic discovery: change pid such that it uses the pid assigned by the leader
+        this.membership     = new Membership(getGroup(), this, true, peerSocket.getLocalPort());  // TODO: dynamic discovery: change pid such that it uses the pid assigned by the leader
         this.sendGroup(new JoinMessage(), false); // not sure if ordered or not..
     }
 
@@ -137,7 +137,9 @@ class Middleware extends Thread {
 
     public void send(long receiver, Message msg, boolean is_ordered) {
         prepareMessage(receiver, msg, is_ordered);
-        SocketAddress address = this.group.getAddress(receiver);
+        System.out.print("sending " + msg.getClass() + " to receiver: ");
+        System.out.println(this.getGroup().getAddress(receiver));
+        SocketAddress address = this.getGroup().getAddress(receiver);
         DatagramPacket packet = this.encodeMessage(address, msg);
         try {
             this.outputQueue.put(packet);
@@ -147,6 +149,7 @@ class Middleware extends Thread {
     }
 
     public void sendGroup(Message msg, boolean is_ordered) {
+        System.out.print("sending multicast " + msg.getClass() + " to receiver: ");
         prepareMessage(GROUP_PID, msg, is_ordered);
         DatagramPacket packet = this.encodeMessage(groupAddress, msg);
         try {
@@ -238,7 +241,7 @@ class Middleware extends Thread {
                     new ByteArrayInputStream(packet.getData(), packet.getOffset(), packet.getLength())
             );
             Message message = (Message) stream.readObject();
-            long    sender = group.getPid(packet.getSocketAddress());
+            long    sender = getGroup().getPid(packet.getSocketAddress());
             return new ReceivedMessage(now, sender, packet, message);
         } catch (IOException e) {
             e.printStackTrace();
@@ -313,4 +316,8 @@ class Middleware extends Thread {
     public Membership getMembership() {
     	return membership;
     }
+
+	public void setGroup(Group group) {
+		this.group = group;
+	}
 }

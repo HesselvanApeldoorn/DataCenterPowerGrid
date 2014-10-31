@@ -20,7 +20,7 @@ public class Leader extends TimerTask {
     @Override
     public synchronized void run() {
         long now = System.currentTimeMillis();
-        long then = now - 20 * HEARTBEAT_PERIOD; // TODO: set back to 2* 
+        long then = now - 4 * HEARTBEAT_PERIOD; // TODO: set back to 2* 
         for (Map.Entry<Long,Long> ack: lastAcks.entrySet()) {
             if (ack.getValue() < then) {
                 dropMember(ack.getKey());  // TODO: acks are not send back yet, leader will drop members now after 2 heatrbeats
@@ -40,6 +40,7 @@ public class Leader extends TimerTask {
     
     public synchronized void handoutPid(Middleware.ReceivedMessage receivedMessage) {
         JoinMessage message = (JoinMessage) receivedMessage.payload;
-        middleware.sendGroup(new AckJoinMessage(pidCounter++, receivedMessage.packet.getSocketAddress()), false);
+        this.group.add(pidCounter, receivedMessage.packet.getSocketAddress());
+        middleware.sendGroup(new AckJoinMessage(pidCounter++, receivedMessage.packet.getSocketAddress(), group), false);
     }
 }
