@@ -5,12 +5,10 @@ import java.util.concurrent.BlockingQueue;
 
 public class Dispatcher extends Thread {
 	private Middleware middleware;
-	private Leader leader;
 	boolean stopped;
 	
-	public Dispatcher(Middleware middleware, Leader leader) {
+	public Dispatcher(Middleware middleware) {
 		this.middleware = middleware;
-		this.leader = leader;
 		stopped = false;
 	}
 	
@@ -25,8 +23,8 @@ public class Dispatcher extends Thread {
 				System.out.println("Couldn't take message from queue");
 			}
 			System.out.println(" known pids: " + middleware.getGroup().getPids());
-			for (long pidz : middleware.getGroup().getPids()) 
-				System.out.println(pidz + ", " + middleware.getGroup().getAddress(pidz));
+			// for (long pidz : middleware.getGroup().getPids()) 
+				// System.out.println(pidz + ", " + middleware.getGroup().getAddress(pidz));
     	    if (receivedMessage.payload instanceof ElectionMessage) {
     	        middleware.getMembership().participateElection(receivedMessage);
     	    } else if (receivedMessage.payload instanceof BullyElectionMessage) {
@@ -34,10 +32,10 @@ public class Dispatcher extends Thread {
     	    } else if (receivedMessage.payload instanceof HeartbeatMessage) {
     	    	middleware.getMembership().updateHeartbeat(receivedMessage);
     	    } else if (receivedMessage.payload instanceof AckHeartbeatMessage) {
-    	    	this.leader.receiveAcknowledge(receivedMessage);
+    	    	this.middleware.getLeader().receiveAcknowledge(receivedMessage);
     	    } else if(receivedMessage.payload instanceof JoinMessage) {
     	    	if (middleware.getMembership().isLeader())
-    	    		this.leader.handoutPid(receivedMessage);
+    	    		this.middleware.getLeader().handoutPid(receivedMessage);
     	    } else if (receivedMessage.payload instanceof AckJoinMessage) {
     	    	middleware.getMembership().applyJoin(receivedMessage);
     	    } else if (receivedMessage.payload instanceof LeaveMessage) {

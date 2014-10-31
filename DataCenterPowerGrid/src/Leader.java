@@ -14,6 +14,10 @@ public class Leader extends TimerTask {
         this.group = theGroup;
         this.middleware = theMiddleware;
         this.lastAcks = new HashMap<Long, Long>(100);
+        long now = System.currentTimeMillis();
+        for(long pid : group.getPids()) {// makes sure all processes are checked on activity by leader
+        	lastAcks.put(pid, now);
+        }
         this.pidCounter = 0;
     }
 
@@ -23,13 +27,11 @@ public class Leader extends TimerTask {
         long now = System.currentTimeMillis();
         long then = now - 2 * HEARTBEAT_PERIOD;
         for (Map.Entry<Long,Long> ack: lastAcks.entrySet()) {
-        	System.out.println("acks" + ack.getValue());
             if (ack.getValue() < then) {
         		System.out.println("dropping: " + ack.getKey());
                 dropMember(ack.getKey());
             }
         }
-        System.out.println("leader heartbeating");
         middleware.sendGroup(new HeartbeatMessage(now), false);
     }
 

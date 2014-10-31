@@ -23,6 +23,7 @@ class Middleware extends Thread {
     private MulticastSocket groupSocket;
     private Receiver        groupReceiver;
     private Sender          sender;
+    private Leader			leader;
 
     private SocketAddress groupAddress;
     private Membership membership;
@@ -117,6 +118,7 @@ class Middleware extends Thread {
         this.groupQueue     = new HoldbackQueue();
         this.sequencer      = new Sequencer();
         this.membership     = new Membership(getGroup(), this, true, peerSocket.getLocalPort());  // TODO: dynamic discovery: change pid such that it uses the pid assigned by the leader
+        this.leader			= new Leader(this.group, this);
         this.sendGroup(new JoinMessage(), false); // not sure if ordered or not..
     }
 
@@ -318,5 +320,13 @@ class Middleware extends Thread {
 
 	public void setGroup(Group group) {
 		this.group = group;
+	}
+
+	public Leader getLeader() {
+		return this.leader;
+	}
+
+	public void setLeader(Leader leader) {
+		this.leader = leader;
 	}
 }

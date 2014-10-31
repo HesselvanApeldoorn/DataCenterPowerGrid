@@ -33,9 +33,7 @@ class Membership {
             if (!isLeader && canLead && !inElection && ( mostRecentHeartbeat < now - 2 * HEARTBEAT_PERIOD)) { // Leader is unavailable, start election
             	System.out.println("start election"); 
             	middleware.sendGroup(new ElectionMessage(pid), false);
-            	middleware.getTimer().schedule(election,
-                        0,
-                        HEARTBEAT_PERIOD);
+            	middleware.getTimer().schedule(election, 0, HEARTBEAT_PERIOD);
             }  
         }
     }
@@ -46,7 +44,8 @@ class Membership {
         	if (isLeader) {         	// received no higher pids, this process is therefore leader
         		System.out.println("I'm leader, my pid is: " + pid);
 	        	this.cancel();
-	            middleware.getTimer().schedule(new Leader(group, middleware),
+	        	middleware.setLeader(new Leader(middleware.getGroup(), middleware));
+	            middleware.getTimer().schedule(middleware.getLeader(),
                         HEARTBEAT_PERIOD,
                         HEARTBEAT_PERIOD);  // I'm leader, start leader process
         		inElection = false;
