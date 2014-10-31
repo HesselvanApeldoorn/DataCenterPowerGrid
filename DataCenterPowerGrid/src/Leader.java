@@ -6,7 +6,7 @@ public class Leader extends TimerTask {
     public final static long HEARTBEAT_PERIOD = 5000;
 
     private Map<Long, Long> lastAcks;
-    private Middleware middleware;
+	private Middleware middleware;
     private Group group;
 
 	private long pidCounter;
@@ -19,13 +19,17 @@ public class Leader extends TimerTask {
 
     @Override
     public synchronized void run() {
+    	middleware.getMembership().setLeader(true);  // TODO: Not a good construction
         long now = System.currentTimeMillis();
         long then = now - 2 * HEARTBEAT_PERIOD;
         for (Map.Entry<Long,Long> ack: lastAcks.entrySet()) {
+        	System.out.println("acks" + ack.getValue());
             if (ack.getValue() < then) {
+        		System.out.println("dropping: " + ack.getKey());
                 dropMember(ack.getKey());
             }
         }
+        System.out.println("leader heartbeating");
         middleware.sendGroup(new HeartbeatMessage(now), false);
     }
 

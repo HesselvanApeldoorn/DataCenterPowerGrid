@@ -24,6 +24,9 @@ public class Dispatcher extends Thread {
 			} catch (InterruptedException e) {
 				System.out.println("Couldn't take message from queue");
 			}
+			System.out.println(" known pids: " + middleware.getGroup().getPids());
+			for (long pidz : middleware.getGroup().getPids()) 
+				System.out.println(pidz + ", " + middleware.getGroup().getAddress(pidz));
     	    if (receivedMessage.payload instanceof ElectionMessage) {
     	        middleware.getMembership().participateElection(receivedMessage);
     	    } else if (receivedMessage.payload instanceof BullyElectionMessage) {
