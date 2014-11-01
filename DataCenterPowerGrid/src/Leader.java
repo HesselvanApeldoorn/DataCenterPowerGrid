@@ -10,16 +10,23 @@ public class Leader extends TimerTask {
     private Middleware middleware;
     private Group group;
 
-    public Leader(Group theGroup, Middleware theMiddleware) {
+    public final long pid;
+    public final int  term;
+
+    public Leader(Group theGroup, Middleware theMiddleware, long pid, int term) {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.lifeSigns  = new HashMap<Long, Long>(100);
+        this.pid  = pid;
+        this.term = term;
     }
 
     public static class Heartbeat extends Message {
         public final long timestamp;
-        public Heartbeat(long timestamp) {
+        public final int  term;
+        public Heartbeat(long timestamp, int term) {
             this.timestamp = timestamp;
+            this.term      = term;
         }
     }
 
@@ -41,7 +48,7 @@ public class Leader extends TimerTask {
                 middleware.sendGroup(new Member.Leave(group.getVersion(), pid), true);
            }
         }
-        middleware.sendGroup(new Heartbeat(now), false);
+        middleware.sendGroup(new Heartbeat(now, term), false);
     }
 
     public synchronized void onAlive(long sender, SocketAddress address, long timestamp) {

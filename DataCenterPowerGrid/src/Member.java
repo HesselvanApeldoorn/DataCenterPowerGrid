@@ -1,35 +1,82 @@
 import java.net.SocketAddress;
 import java.util.TimerTask;
 import java.util.Timer;
-
+import java.util.Random;
 
 class Member {
-    public final static long HEARTBEAT_PERIOD = 5000;
-
     private Group      group;
     private Middleware middleware;
-    private boolean    isLeader = false;
-    private boolean     canLead = false;
-    private boolean  inElection = false;
+    private Election   election = null;
+    private Leader     leader   = null;
+
     private long            pid = Middleware.NO_PID;
     private long  lastHeartbeat = -1;
+    private SocketAddress votedFor = null;
+    private int     currentTerm = 0;
 
-    public Member(Group theGroup, Middleware theMiddleware, boolean iCanLead) {
+    public Member(Group theGroup, Middleware theMiddleware, boolean candidate) {
         this.group      = theGroup;
         this.middleware = theMiddleware;
-        this.canLead    = iCanLead;
-        this.middleware.getTimer().schedule(new Election(), 2*Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
+        if (candidate) {
+            this.election = new Election(Leader.HEARTBEAT_PERIOD);
+            this.middleware.getTimer().schedule(this.election, this.election.timeout, this.election.timeout);
+        }
     }
 
-    public class Election extends TimerTask {
+    private class Election extends TimerTask {
+        /* Only possible reason to run an election is if you can be a candidate as well */
+        public final long timeout;
+        public boolean active = false;
+        private int totalVotes;
+        private int positiveVotes;
+
+        public Election(long period) {
+            this.timeout   = 3*period + (new Random().nextLong() % period);
+        }
+
         @Override
         public void run() {
             long now = System.currentTimeMillis();
-            if (lastHeartbeat < (now - 2*Leader.HEARTBEAT_PERIOD)) {
-
+            if (active) {
+                countVotes();
+            } else if (lastHeartbeat < (now - timeout)) {
+                startElection();
             }
         }
+
+        private void startElection() {
+            currentTerm += 1;
+            totalVotes = 0;
+            positiveVotes = 0;
+            active = true;
+            middleware.sendGroup(new VoteRequest(currentTerm, group.getVersion()), false);
+        }
+
+        private void countVotes() {
+            // NB, totalVotes will be less than the group size due to message loss
+            // thus in theory there can be more than one leader elected. however,
+            // in that case each will 'kick out' the other leader swiftly, and
+            // another leader will start
+            if (positiveVotes * 2 > totalVotes) {
+                // we have a majority, start leading
+                leader = new Leader(group, middleware, pid, currentTerm);
+                middleware.getTimer().schedule(leader, Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
+                middleware.sendGroup(new DeclareLeader(currentTerm, group.getVersion()), false);
+            }
+            lastHeartbeat = System.currentTimeMillis();
+            active = false;
+        }
+
+        public void onVoteReply(SocketAddress sender, boolean reply, int term) {
+            if (term != currentTerm) // an out-of-order message
+                return;
+            totalVotes++;
+            if (reply)
+                positiveVotes++;
+        }
     }
+
+
 
     public static class Alive extends Message {
         // nothing to do here, move along
@@ -56,11 +103,43 @@ class Member {
         }
     }
 
+    public static class VoteRequest extends Message {
+        public final int term;
+        public final int version;
+        public VoteRequest(int term, int version) {
+            this.term    = term;
+            this.version = version;
+        }
+    }
+
+    public static class VoteReply extends Message {
+        public final boolean reply;
+        public final int term;
+        public VoteReply(boolean reply, int term) {
+            this.reply = reply;
+            this.term   = term;
+        }
+    }
+
+    public static class DeclareLeader extends Message {
+        public final int term;
+        public final int version;
+        public DeclareLeader(int term, int version) {
+            this.term = term;
+            this.version = version;
+        }
+    }
+
     public void onHeartbeat(long sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
         // in theory, compute the difference between our received timestamp and
         // the leaders timestamp. In practice, just reply saying you're alive
+        // cancel running elections
         lastHeartbeat = timestamp;
+        election.active = false;
         middleware.send(address, new Alive());
+        if (leader != null && pid != sender && message.term >= currentTerm) {
+            leader.cancel();
+        }
     }
 
     public void onJoin(Join request) {
@@ -84,6 +163,16 @@ class Member {
 
     public long getPid() {
         return this.pid;
+    }
+
+    public void onVoteRequest(SocketAddress sender, int groupVersion, int term) {
+        if (term >= currentTerm && groupVersion >= group.getVersion() && votedFor == null) {
+            votedFor    = sender;
+            currentTerm = term;
+            middleware.send(sender, new VoteReply(true, term));
+        } else {
+            middleware.send(sender, new VoteReply(false, term));
+        }
     }
 
 }
