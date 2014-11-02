@@ -70,7 +70,7 @@ class Member implements Dispatcher.Endpoint {
         }
 
         public void onVoteReply(boolean reply, int term) {
-            System.err.println("Vote reply");
+            System.err.println("Vote reply: " + (reply ? "true" : "false"));
             if (term != currentTerm) // an out-of-order message
                 return;
             totalVotes++;
@@ -125,6 +125,7 @@ class Member implements Dispatcher.Endpoint {
     }
 
     public void onHeartbeat(SocketAddress address, long timestamp, Leader.Heartbeat message) {
+        System.err.printf("onHeartbeat(%s, %d, %d);\n", address.toString(), timestamp, message.term);
         // in theory, compute the difference between our received timestamp and
         // the leaders timestamp. In practice, just reply saying you're alive
         lastHeartbeat = timestamp;
@@ -177,8 +178,9 @@ class Member implements Dispatcher.Endpoint {
         return this.pid;
     }
 
-    public void onVoteRequest(SocketAddress sender, int groupVersion, int term) {
-        if (term >= currentTerm && groupVersion >= group.getVersion() && votedFor == null) {
+    public void onVoteRequest(SocketAddress sender, int term, int version) {
+        System.err.printf("onVoteRequest(%s, %d, %d);", sender.toString(), version, term);
+        if (term >= currentTerm && version >= group.getVersion() && votedFor == null) {
             votedFor    = sender;
             currentTerm = term;
             middleware.send(sender, new VoteReply(true, term));
