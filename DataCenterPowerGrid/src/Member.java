@@ -9,6 +9,7 @@ class Member implements Dispatcher.Endpoint {
     private Election   election = null;
     private Leader     leader   = null;
 
+    private long      leaderPid = Middleware.NO_PID;
     private long            pid = Middleware.NO_PID;
     private long  lastHeartbeat = -1;
     private SocketAddress votedFor = null;
@@ -51,6 +52,8 @@ class Member implements Dispatcher.Endpoint {
             totalVotes = 0;
             positiveVotes = 0;
             active = true;
+            group.remove(leaderPid);
+            middleware.sendGroup(new Leave(group.getVersion(), leaderPid), true);
             middleware.sendGroup(new VoteRequest(currentTerm, group.getVersion()), false);
         }
 
@@ -63,9 +66,12 @@ class Member implements Dispatcher.Endpoint {
             if (positiveVotes * 2 > totalVotes) {
                 System.err.println("I declare myself leader");
                 // we have a majority, start leading
-                leader = new Leader(group, middleware, currentTerm);
+                // assign myself a pid if i don't have one yet
+                if (pid == Middleware.NO_PID)
+                    pid = group.nextPid();
+                leader = new Leader(group, middleware, pid, currentTerm);
                 middleware.getTimer().schedule(leader, Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
-                middleware.sendGroup(new Leader.Heartbeat(System.currentTimeMillis(), currentTerm), false);
+                middleware.sendGroup(new Leader.Heartbeat(System.currentTimeMillis(), pid, currentTerm), false);
             }
              active = false;
         }
@@ -125,7 +131,7 @@ class Member implements Dispatcher.Endpoint {
         }
     }
 
-    public void onHeartbeat(SocketAddress address, long timestamp, Leader.Heartbeat message) {
+    public void onHeartbeat(long sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
         System.err.printf("onHeartbeat(%s, %d, %d);\n", address.toString(), timestamp, message.term);
         // in theory, compute the difference between our received timestamp and
         // the leaders timestamp. In practice, just reply saying you're alive
@@ -133,30 +139,27 @@ class Member implements Dispatcher.Endpoint {
         // cancel any running elections
         election.active = false;
         votedFor        = null;
-        middleware.send(address, new Alive());
         if (message.term >= currentTerm) {
-            if (group.getLeaderAddress() == null) {
-                // this must be either our first leader, or our newly
-                // elected leader.  so we can just accept it as our
-                // leader. NB this can also be myself!
-                group.setLeaderAddress(address);
-            } else if (!group.getLeaderAddress().equals(address)) {
-                // It very much looks as if we have a new leader.  If I
-                // was the leader, I should stand down.
-                if (leader != null) {
-                    leader.cancel();
-                    leader = null;
-                }
-                // set our current leader to null. If the leader that
-                // sent us our earlier message is persistent, it will
-                // re-establish itself. Otherwise, a new election will
-                // have to take place.
-                group.setLeaderAddress(null);
+            if (sender == Middleware.NO_PID) {
+                // This is a unknown, but valid leader for me, so I
+                // can trust it's messages. Therefore, I add it to the
+                // group.
+                group.add(message.pid, address);
+                leaderPid = message.pid;
+            }
+            // I didn't send this to myself, and there is some other leader.
+            if (message.pid != pid && leader != null) {
+                System.err.println("Standing down");
+                leader.cancel();
+                leader = null;
             }
         }
+        // respond with a life sign
+        middleware.send(address, new Alive());
     }
 
     public void onJoin(Join request) {
+        System.err.printf("Join %d %s\n", request.member, request.address);
         if (group.getVersion() + 1 == request.version) {
             group.add(request.member, request.address);
         } else {
@@ -166,12 +169,14 @@ class Member implements Dispatcher.Endpoint {
     }
 
     public void onLeave(Leave request) {
+        System.err.printf("Leave %d\n", request.member);
         if (group.getVersion() + 1 == request.version) {
             group.remove(request.member);
         }
     }
 
     public void onWelcome(Leader.Welcome welcome) {
+        System.err.printf("Welcome %d (%d)\n", welcome.pid, welcome.sequence_nr);
         this.pid = welcome.pid;
     }
 
@@ -211,8 +216,8 @@ class Member implements Dispatcher.Endpoint {
             break;
         }
         case HEARTBEAT: {
-            onHeartbeat(message.packet.getSocketAddress(), message.timestamp,
-                        (Leader.Heartbeat)message.payload);
+            onHeartbeat(message.sender, message.packet.getSocketAddress(),
+                        message.timestamp, (Leader.Heartbeat)message.payload);
             break;
         }
         case VOTE_REQUEST: {

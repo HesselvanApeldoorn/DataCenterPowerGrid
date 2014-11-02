@@ -1,6 +1,8 @@
 import java.util.TimerTask;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.net.SocketAddress;
 
 public class Leader extends TimerTask {
@@ -10,19 +12,23 @@ public class Leader extends TimerTask {
     private Middleware middleware;
     private Group group;
     public final int  term;
+    public final long pid;
 
-    public Leader(Group theGroup, Middleware theMiddleware, int term) {
+    public Leader(Group theGroup, Middleware theMiddleware, long pid, int term) {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.lifeSigns  = new HashMap<Long, Long>(100);
+        this.pid  = pid;
         this.term = term;
     }
 
     public static class Heartbeat extends Message {
         public final long timestamp;
+        public final long pid;
         public final int  term;
-        public Heartbeat(long timestamp, int term) {
+        public Heartbeat(long timestamp, long pid, int term) {
             this.timestamp = timestamp;
+            this.pid       = pid;
             this.term      = term;
         }
     }
@@ -39,15 +45,19 @@ public class Leader extends TimerTask {
         System.err.println("Leader.run()");
         long now  = System.currentTimeMillis();
         long then = now - 3 * HEARTBEAT_PERIOD;
+        List<Long> dropped = new ArrayList<Long>(10);
         for (Map.Entry<Long,Long> item: lifeSigns.entrySet()) {
             if (item.getValue() < then) {
                 long pid = item.getKey();
                 group.remove(pid);
+                dropped.add(pid);
                 System.err.printf("Leader.drop(%d)\n", pid);
                 middleware.sendGroup(new Member.Leave(group.getVersion(), pid), true);
            }
         }
-        middleware.sendGroup(new Heartbeat(now, term), false);
+        for (Long pid : dropped)
+            lifeSigns.remove(pid);
+        middleware.sendGroup(new Heartbeat(now, pid, term), false);
     }
 
     public synchronized void onAlive(long sender, SocketAddress address, long timestamp) {

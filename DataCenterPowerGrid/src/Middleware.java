@@ -21,7 +21,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 class Middleware extends Thread {
     public final static long  GROUP_PID = 0;
     public final static long     NO_PID = -1;
-    public final static long LEADER_PID = Long.MAX_VALUE;
 
     private DatagramSocket  peerSocket;
     private Receiver        peerReceiver;
@@ -197,12 +196,13 @@ class Middleware extends Thread {
 
     public void resend(long receiver, int sequence_nr) {
         Message message = sentMessages.find(receiver, sequence_nr);
+        SocketAddress address = group.getAddress(receiver);
         if (message != null)
-            // similarily as below, this is wrong
-            send(receiver, message, false);
+            send(address, message);
     }
 
     public void resend(long requester, RetransmitRequest req) {
+        System.err.println("resend to retransmitrequest");
         if (req.is_multicast) {
             // if it was multicast, it means we're asking the group for delivered
             // messages of a now-dead group member
@@ -210,16 +210,12 @@ class Middleware extends Thread {
             if (message != null)
                 sendGroup(new RetransmitMessage(req.sender, message), false);
         } else {
-            Message message = sentMessages.find(req.req_is_mc ? GROUP_PID : requester, req.sequence_nr);
-            if (message != null) {
-                if (req.req_is_mc)
-                    // this is wrong, this is telling people that the original
-                    // requested message is unordered. must wrap in retransmitmessage,
-                    // but what is my pid? could we use NO_PID to signal it is my own?
-                    sendGroup(message, false);
-                else
-                    send(requester, message, false);
-            }
+            Message message       = sentMessages.find(req.req_is_mc ? GROUP_PID : requester, req.req_seq_nr);
+            SocketAddress address = req.req_is_mc ? groupAddress : group.getAddress(requester);
+            System.err.printf("Resending %s message #%d to %s\n", req.req_is_mc ? "multicast" : "peer-to-peer",
+                              req.req_seq_nr, req.req_is_mc ? "group" : String.format("pid %d", requester));
+            if (message != null)
+                send(address, message); // send the message unaltered
         }
     }
 
@@ -340,6 +336,8 @@ class Middleware extends Thread {
                 this.send(message.sender, new Acknowledge(message.payload.sequence_nr), false);
                 this.peerQueue.add(message);
                 for (ReceivedMessage deliverable : this.peerQueue.getDeliverableMessages(message.sender)) {
+                    System.err.printf("Delivering message %d from %d\n", deliverable.payload.sequence_nr,
+                                      deliverable.sender);
                     this.deliveryQueue.put(deliverable);
                 }
             }

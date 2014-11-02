@@ -55,8 +55,11 @@ class HoldbackQueue {
             return deliverable; // which is empty
         while (queue.size() > 0) {
             // head is next message
-            if (queue.peek().payload.sequence_nr == delivered.get(sender) + 1)
+            Middleware.ReceivedMessage message = queue.peek();
+            if (message.payload.sequence_nr == delivered.get(sender) + 1) {
+                delivered.put(sender, message.payload.sequence_nr);
                 deliverable.add(queue.poll()); // add to list, remove from queue
+            }
             else
                 break; // no more messages to deliver
         }

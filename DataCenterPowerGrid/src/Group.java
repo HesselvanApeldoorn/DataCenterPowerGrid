@@ -52,19 +52,5 @@ class Group {
         return ++nextPid;
     }
 
-
-    public synchronized void setLeaderAddress(SocketAddress address) {
-        SocketAddress oldAddress = pidToSocket.get(Middleware.LEADER_PID);
-        pidToSocket.put(Middleware.LEADER_PID, address);
-        if (address == null)
-            socketToPid.remove(address);
-        else
-            socketToPid.put(address, Middleware.LEADER_PID);
-    }
-
-    public synchronized SocketAddress getLeaderAddress() {
-        return pidToSocket.get(Middleware.LEADER_PID);
-    }
-
 }
 
