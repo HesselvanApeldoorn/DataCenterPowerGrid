@@ -36,6 +36,7 @@ class Member implements Dispatcher.Endpoint {
 
         @Override
         public void run() {
+            System.err.println("Election.run");
             long now = System.currentTimeMillis();
             if (active) {
                 countVotes();
@@ -179,7 +180,7 @@ class Member implements Dispatcher.Endpoint {
     }
 
     public void onVoteRequest(SocketAddress sender, int term, int version) {
-        System.err.printf("onVoteRequest(%s, %d, %d);", sender.toString(), version, term);
+        System.err.printf("onVoteRequest(%s, %d, %d);\n", sender.toString(), version, term);
         if (term >= currentTerm && version >= group.getVersion() && votedFor == null) {
             votedFor    = sender;
             currentTerm = term;

@@ -36,12 +36,14 @@ public class Leader extends TimerTask {
 
     @Override
     public synchronized void run() {
+        System.err.println("Leader.run()");
         long now  = System.currentTimeMillis();
         long then = now - 3 * HEARTBEAT_PERIOD;
         for (Map.Entry<Long,Long> item: lifeSigns.entrySet()) {
             if (item.getValue() < then) {
                 long pid = item.getKey();
                 group.remove(pid);
+                System.err.printf("Leader.drop(%d)\n", pid);
                 middleware.sendGroup(new Member.Leave(group.getVersion(), pid), true);
            }
         }
@@ -49,6 +51,7 @@ public class Leader extends TimerTask {
     }
 
     public synchronized void onAlive(long sender, SocketAddress address, long timestamp) {
+        System.err.printf("onAlive(%d, %s, %d)\n", sender, address.toString(), timestamp);
         if (sender == Middleware.NO_PID) {
             sender = group.nextPid();
             group.add(sender, address);
