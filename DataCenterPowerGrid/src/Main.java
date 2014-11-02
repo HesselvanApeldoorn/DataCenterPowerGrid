@@ -17,14 +17,9 @@ public class Main {
         MulticastSocket groupSocket    = new MulticastSocket(GROUP_PORT);
         groupSocket.joinGroup(groupAddress.getAddress());
         Middleware middleware          = new Middleware(peerSocket, groupSocket, groupAddress);
+        Member member = new Member(middleware.getGroup(), middleware, true);
         middleware.start();
-        BlockingQueue<Middleware.ReceivedMessage> queue = middleware.getDeliveryQueue();
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep(1500);
-            middleware.sendGroup(new Message(), false);
-            Middleware.ReceivedMessage message = queue.take();
-            System.out.printf("Received: %s from %s\n", message.payload, message.packet.getSocketAddress());
-        }
+        new Dispatcher(middleware.getDeliveryQueue(), member, null).run();
         middleware.shutdown();
     }
 

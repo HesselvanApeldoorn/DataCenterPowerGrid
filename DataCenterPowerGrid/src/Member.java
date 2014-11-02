@@ -3,7 +3,7 @@ import java.util.TimerTask;
 import java.util.Timer;
 import java.util.Random;
 
-class Member {
+class Member implements Dispatcher.Endpoint {
     private Group      group;
     private Middleware middleware;
     private Election   election = null;
@@ -45,6 +45,7 @@ class Member {
         }
 
         private void startElection() {
+            System.err.println("startElection");
             currentTerm += 1;
             totalVotes = 0;
             positiveVotes = 0;
@@ -53,11 +54,13 @@ class Member {
         }
 
         private void countVotes() {
+            System.err.println("countVotes");
             // NB, totalVotes will be less than the group size due to message loss
             // thus in theory there can be more than one leader elected. however,
             // in that case each will 'kick out' the other leader swiftly, and
             // another leader will start
             if (positiveVotes * 2 > totalVotes) {
+                System.err.println("I declare myself leader");
                 // we have a majority, start leading
                 leader = new Leader(group, middleware, currentTerm);
                 middleware.getTimer().schedule(leader, Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
@@ -66,7 +69,8 @@ class Member {
              active = false;
         }
 
-        public void onVoteReply(SocketAddress sender, boolean reply, int term) {
+        public void onVoteReply(boolean reply, int term) {
+            System.err.println("Vote reply");
             if (term != currentTerm) // an out-of-order message
                 return;
             totalVotes++;
@@ -128,17 +132,24 @@ class Member {
         election.active = false;
         votedFor        = null;
         middleware.send(address, new Alive());
-        if (group.getLeaderAddress() == null && message.term >= currentTerm) {
-            // this must be either our first leader, or our newly
-            // elected leader.  so we can just accept it as our
-            // leader. NB this can also be myself!
-            group.setLeaderAddress(address);
-        } else if (!group.getLeaderAddress().equals(address) && message.term >= currentTerm) {
-            // It very much looks as if we have a new leader.  If I
-            // was the leader, I should stand down.
-            if (leader != null) {
-                leader.cancel();
-                leader = null;
+        if (message.term >= currentTerm) {
+            if (group.getLeaderAddress() == null) {
+                // this must be either our first leader, or our newly
+                // elected leader.  so we can just accept it as our
+                // leader. NB this can also be myself!
+                group.setLeaderAddress(address);
+            } else if (!group.getLeaderAddress().equals(address)) {
+                // It very much looks as if we have a new leader.  If I
+                // was the leader, I should stand down.
+                if (leader != null) {
+                    leader.cancel();
+                    leader = null;
+                }
+                // set our current leader to null. If the leader that
+                // sent us our earlier message is persistent, it will
+                // re-establish itself. Otherwise, a new election will
+                // have to take place.
+                group.setLeaderAddress(null);
             }
         }
     }
@@ -176,4 +187,45 @@ class Member {
         }
     }
 
+    public void deliver(Middleware.ReceivedMessage message) {
+        switch (Dispatcher.getMessageType(message)) {
+        case JOIN: {
+            onJoin((Join)message.payload);
+            break;
+        }
+        case LEAVE: {
+            onLeave((Leave)message.payload);
+            break;
+        }
+        case WELCOME: {
+            onWelcome((Leader.Welcome)message.payload);
+            break;
+        }
+        case ALIVE: {
+            if (leader != null) {
+                leader.onAlive(message.sender, message.packet.getSocketAddress(), message.timestamp);
+            }
+            break;
+        }
+        case HEARTBEAT: {
+            onHeartbeat(message.packet.getSocketAddress(), message.timestamp,
+                        (Leader.Heartbeat)message.payload);
+            break;
+        }
+        case VOTE_REQUEST: {
+            VoteRequest req = (VoteRequest)message.payload;
+            onVoteRequest(message.packet.getSocketAddress(), req.term, req.version);
+            break;
+        }
+        case VOTE_REPLY: {
+            VoteReply rep = (VoteReply)message.payload;
+            if (election.active) {
+                election.onVoteReply(rep.reply, rep.term);
+            }
+            break;
+        }
+        default:
+            System.err.println(message);
+        }
+    }
 }
