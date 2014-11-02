@@ -39,7 +39,7 @@ class Member {
             long now = System.currentTimeMillis();
             if (active) {
                 countVotes();
-            } else if (lastHeartbeat < (now - timeout)) {
+            } else if (lastHeartbeat < (now - timeout) && votedFor == null) {
                 startElection();
             }
         }
@@ -59,12 +59,11 @@ class Member {
             // another leader will start
             if (positiveVotes * 2 > totalVotes) {
                 // we have a majority, start leading
-                leader = new Leader(group, middleware, pid, currentTerm);
+                leader = new Leader(group, middleware, currentTerm);
                 middleware.getTimer().schedule(leader, Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
-                middleware.sendGroup(new DeclareLeader(currentTerm, group.getVersion()), false);
+                middleware.sendGroup(new Leader.Heartbeat(System.currentTimeMillis(), currentTerm), false);
             }
-            lastHeartbeat = System.currentTimeMillis();
-            active = false;
+             active = false;
         }
 
         public void onVoteReply(SocketAddress sender, boolean reply, int term) {
@@ -121,24 +120,26 @@ class Member {
         }
     }
 
-    public static class DeclareLeader extends Message {
-        public final int term;
-        public final int version;
-        public DeclareLeader(int term, int version) {
-            this.term = term;
-            this.version = version;
-        }
-    }
-
-    public void onHeartbeat(long sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
+    public void onHeartbeat(SocketAddress address, long timestamp, Leader.Heartbeat message) {
         // in theory, compute the difference between our received timestamp and
         // the leaders timestamp. In practice, just reply saying you're alive
-        // cancel running elections
         lastHeartbeat = timestamp;
+        // cancel any running elections
         election.active = false;
+        votedFor        = null;
         middleware.send(address, new Alive());
-        if (leader != null && pid != sender && message.term >= currentTerm) {
-            leader.cancel();
+        if (group.getLeaderAddress() == null && message.term >= currentTerm) {
+            // this must be either our first leader, or our newly
+            // elected leader.  so we can just accept it as our
+            // leader. NB this can also be myself!
+            group.setLeaderAddress(address);
+        } else if (!group.getLeaderAddress().equals(address) && message.term >= currentTerm) {
+            // It very much looks as if we have a new leader.  If I
+            // was the leader, I should stand down.
+            if (leader != null) {
+                leader.cancel();
+                leader = null;
+            }
         }
     }
 

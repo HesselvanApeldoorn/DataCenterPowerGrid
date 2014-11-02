@@ -9,15 +9,12 @@ public class Leader extends TimerTask {
     private Map<Long, Long> lifeSigns;
     private Middleware middleware;
     private Group group;
-
-    public final long pid;
     public final int  term;
 
-    public Leader(Group theGroup, Middleware theMiddleware, long pid, int term) {
+    public Leader(Group theGroup, Middleware theMiddleware, int term) {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.lifeSigns  = new HashMap<Long, Long>(100);
-        this.pid  = pid;
         this.term = term;
     }
 

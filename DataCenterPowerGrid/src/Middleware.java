@@ -19,8 +19,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 class Middleware extends Thread {
-    public final static long GROUP_PID = 0;
-    public final static long    NO_PID = -1;
+    public final static long  GROUP_PID = 0;
+    public final static long     NO_PID = -1;
+    public final static long LEADER_PID = Long.MAX_VALUE;
 
     private DatagramSocket  peerSocket;
     private Receiver        peerReceiver;

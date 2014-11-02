@@ -51,5 +51,14 @@ class Group {
     public synchronized long nextPid() {
         return ++nextPid;
     }
+
+
+    public synchronized void setLeaderAddress(SocketAddress address) {
+        add(Middleware.LEADER_PID, address);
+    }
+
+    public synchronized SocketAddress getLeaderAddress() {
+        return pidToSocket.get(Middleware.LEADER_PID);
+    }
 }
 
