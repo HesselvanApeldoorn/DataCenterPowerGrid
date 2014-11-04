@@ -27,12 +27,14 @@ class Member implements Dispatcher.Endpoint {
     private class Election extends TimerTask {
         /* Only possible reason to run an election is if you can be a candidate as well */
         public final long timeout;
+
         public boolean active = false;
+        private int estimatedGroupSize;
         private int totalVotes;
         private int positiveVotes;
 
         public Election(long period) {
-            this.timeout   = 3*period + (new Random().nextLong() % period);
+            this.timeout = 2*period + (new Random().nextLong() % period);
         }
 
         @Override
@@ -52,8 +54,11 @@ class Member implements Dispatcher.Endpoint {
             totalVotes = 0;
             positiveVotes = 0;
             active = true;
-            group.remove(leaderPid);
-            middleware.sendGroup(new Leave(leaderPid), true);
+            if (leaderPid != Middleware.NO_PID && pid != Middleware.NO_PID) {
+                group.remove(leaderPid);
+                middleware.sendGroup(new Leave(leaderPid), true);
+            }
+            estimatedGroupSize = group.getSize();
             middleware.sendGroup(new VoteRequest(currentTerm), false);
         }
 
@@ -63,8 +68,9 @@ class Member implements Dispatcher.Endpoint {
             // thus in theory there can be more than one leader elected. however,
             // in that case each will 'kick out' the other leader swiftly, and
             // another leader will start
-            System.out.println("\n\n\n ---- group size:" + group.getPidToSocket().entrySet());
-            if (positiveVotes * 2 > Math.max(totalVotes,group.getPidToSocket().size())) { // take max of total votes and group size
+            int goalPost = (estimatedGroupSize > totalVotes ? estimatedGroupSize : totalVotes);
+            if (positiveVotes * 2 > goalPost) {
+                // take max of total votes and group size
                 System.err.println("I declare myself leader");
                 // we have a majority, start leading
                 // assign myself a pid if i don't have one yet

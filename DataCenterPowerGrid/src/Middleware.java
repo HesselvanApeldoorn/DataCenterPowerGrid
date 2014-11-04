@@ -167,6 +167,7 @@ class Middleware extends Thread {
             // happen
             synchronized (this) {
                 message.sequence_nr = sequencer.next(receiver);
+                System.err.printf("Send message #%d to %d\n", message.sequence_nr, receiver);
                 this.sentMessages.add(receiver, message);
             }
             if (!message.is_multicast) {
@@ -329,8 +330,9 @@ class Middleware extends Thread {
                // order, so both the delivery queue and the
                // ResendBuffer will get them in delivery order too
                for (ReceivedMessage deliverable : this.groupQueue.getDeliverableMessages(message.sender)) {
-                   this.deliveryQueue.put(message);
-                   this.deliveredMulticasts.add(message.sender, message.payload);
+                   System.err.printf("Delivering multicast message %d from %d\n", deliverable.payload.sequence_nr, deliverable.sender);
+                   this.deliveryQueue.put(deliverable);
+                   this.deliveredMulticasts.add(deliverable.sender, deliverable.payload);
                }
            } else {
                 this.send(message.sender, new Acknowledge(message.payload.sequence_nr), false);

@@ -10,7 +10,7 @@ class Sequencer {
 
     public synchronized int next(long pid) {
         int lastNr = sequenceNrs.get(pid);
-        sequenceNrs.put(pid, lastNr++);
+        sequenceNrs.put(pid, ++lastNr);
         return lastNr;
     }
 }
