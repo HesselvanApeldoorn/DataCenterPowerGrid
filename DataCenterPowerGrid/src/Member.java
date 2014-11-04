@@ -53,8 +53,8 @@ class Member implements Dispatcher.Endpoint {
             positiveVotes = 0;
             active = true;
             group.remove(leaderPid);
-            middleware.sendGroup(new Leave(group.getVersion(), leaderPid), true);
-            middleware.sendGroup(new VoteRequest(currentTerm, group.getVersion()), false);
+            middleware.sendGroup(new Leave(leaderPid), true);
+            middleware.sendGroup(new VoteRequest(currentTerm), false);
         }
 
         private void countVotes() {
@@ -93,21 +93,17 @@ class Member implements Dispatcher.Endpoint {
     }
 
    public static class Leave extends Message {
-        public final int version;
         public final long member;
-        public Leave(int version, long member) {
-            this.version = version;
+        public Leave(long member) {
             this.member  = member;
         }
     }
 
     public static class Join extends Message {
         /* Announce the join request */
-        public final int version;
         public final long member;
         public final SocketAddress address;
-        public Join(int version, long member, SocketAddress address) {
-            this.version = version;
+        public Join(long member, SocketAddress address) {
             this.member  = member;
             this.address = address;
         }
@@ -115,10 +111,8 @@ class Member implements Dispatcher.Endpoint {
 
     public static class VoteRequest extends Message {
         public final int term;
-        public final int version;
-        public VoteRequest(int term, int version) {
+        public VoteRequest(int term) {
             this.term    = term;
-            this.version = version;
         }
     }
 
@@ -160,19 +154,12 @@ class Member implements Dispatcher.Endpoint {
 
     public void onJoin(Join request) {
         System.err.printf("Join %d %s\n", request.member, request.address);
-        if (group.getVersion() + 1 == request.version) {
-            group.add(request.member, request.address);
-        } else {
-            // hmm it's likely this request comes from a different leader.
-            // (that should be the only reason it goes out of sync)
-        }
+        group.add(request.member, request.address);
     }
 
     public void onLeave(Leave request) {
         System.err.printf("Leave %d\n", request.member);
-        if (group.getVersion() + 1 == request.version) {
-            group.remove(request.member);
-        }
+        group.remove(request.member);
     }
 
     public void onWelcome(Leader.Welcome welcome) {
@@ -184,9 +171,9 @@ class Member implements Dispatcher.Endpoint {
         return this.pid;
     }
 
-    public void onVoteRequest(SocketAddress sender, int term, int version) {
-        System.err.printf("onVoteRequest(%s, %d, %d);\n", sender.toString(), version, term);
-        if (term >= currentTerm && version >= group.getVersion() && votedFor == null) {
+    public void onVoteRequest(SocketAddress sender, int term) {
+        System.err.printf("onVoteRequest(%s, %d);\n", sender.toString(), term);
+        if (term >= currentTerm && votedFor == null) {
             votedFor    = sender;
             currentTerm = term;
             middleware.send(sender, new VoteReply(true, term));
@@ -222,7 +209,7 @@ class Member implements Dispatcher.Endpoint {
         }
         case VOTE_REQUEST: {
             VoteRequest req = (VoteRequest)message.payload;
-            onVoteRequest(message.packet.getSocketAddress(), req.term, req.version);
+            onVoteRequest(message.packet.getSocketAddress(), req.term);
             break;
         }
         case VOTE_REPLY: {

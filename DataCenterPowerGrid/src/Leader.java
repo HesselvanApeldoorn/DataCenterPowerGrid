@@ -52,7 +52,7 @@ public class Leader extends TimerTask {
                 group.remove(pid);
                 dropped.add(pid);
                 System.err.printf("Leader.drop(%d)\n", pid);
-                middleware.sendGroup(new Member.Leave(group.getVersion(), pid), true);
+                middleware.sendGroup(new Member.Leave(pid), true);
            }
         }
         for (Long pid : dropped)
@@ -66,7 +66,7 @@ public class Leader extends TimerTask {
             sender = group.nextPid();
             group.add(sender, address);
             middleware.send(sender, new Welcome(sender), true);
-            middleware.sendGroup(new Member.Join(group.getVersion(), sender, address), true);
+            middleware.sendGroup(new Member.Join(sender, address), true);
         }
         lifeSigns.put(sender, timestamp);
     }

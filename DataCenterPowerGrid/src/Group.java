@@ -6,13 +6,11 @@ import java.net.SocketAddress;
 /* A thread-safe mapping from PID's to SocketAddresses that represents
  * the group. */
 class Group {
-    private int version;
     private long nextPid;
     private Map<Long, SocketAddress> pidToSocket;
     private Map<SocketAddress, Long> socketToPid;
 
     public Group() {
-        version         = 0;
         nextPid         = 0l;
         pidToSocket     = new HashMap<Long, SocketAddress>();
         socketToPid     = new DefaultHashMap<SocketAddress, Long>(Middleware.NO_PID);
@@ -21,7 +19,6 @@ class Group {
     public synchronized void add(long pid, SocketAddress address) {
         pidToSocket.put(pid, address);
         socketToPid.put(address, pid);
-        version += 1;
         nextPid = (pid > nextPid ? pid : nextPid);
     }
 
@@ -29,7 +26,6 @@ class Group {
         // TODO we should rather use tombstones
         socketToPid.remove(pidToSocket.get(pid));
         pidToSocket.remove(pid);
-        version += 1;
     }
 
     public synchronized SocketAddress getAddress(long pid) {
@@ -38,10 +34,6 @@ class Group {
 
     public synchronized long getPid(SocketAddress addr) {
         return socketToPid.get(addr);
-    }
-
-    public synchronized int getVersion() {
-        return version;
     }
 
     public synchronized boolean isAlive(long pid) {
