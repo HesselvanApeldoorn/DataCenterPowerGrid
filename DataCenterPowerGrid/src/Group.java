@@ -43,6 +43,10 @@ class Group {
     public synchronized long nextPid() {
         return ++nextPid;
     }
+    
+    public synchronized Map<Long, SocketAddress> getPidToSocket() {
+    	return pidToSocket;
+    }
 
 }
 

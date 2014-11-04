@@ -63,7 +63,8 @@ class Member implements Dispatcher.Endpoint {
             // thus in theory there can be more than one leader elected. however,
             // in that case each will 'kick out' the other leader swiftly, and
             // another leader will start
-            if (positiveVotes * 2 > totalVotes) {
+            System.out.println("\n\n\n ---- group size:" + group.getPidToSocket().entrySet());
+            if (positiveVotes * 2 > Math.max(totalVotes,group.getPidToSocket().size())) { // take max of total votes and group size
                 System.err.println("I declare myself leader");
                 // we have a majority, start leading
                 // assign myself a pid if i don't have one yet
