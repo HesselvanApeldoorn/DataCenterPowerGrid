@@ -24,6 +24,7 @@ class Group {
 
     public synchronized void remove(long pid) {
         // TODO we should rather use tombstones
+        // or even more rather, a log
         socketToPid.remove(pidToSocket.get(pid));
         pidToSocket.remove(pid);
     }

@@ -180,7 +180,7 @@ class Member implements Dispatcher.Endpoint {
 
     public void onVoteRequest(SocketAddress sender, int term) {
         System.err.printf("onVoteRequest(%s, %d);\n", sender.toString(), term);
-        if (term >= currentTerm && votedFor == null) {
+        if (term > currentTerm || (term == currentTerm && votedFor == null)) {
             votedFor    = sender;
             currentTerm = term;
             middleware.send(sender, new VoteReply(true, term));

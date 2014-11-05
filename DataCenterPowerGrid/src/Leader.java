@@ -11,6 +11,7 @@ public class Leader extends TimerTask {
     private Map<Long, Long> lifeSigns;
     private Middleware middleware;
     private Group group;
+    private int runCount;
     public final int  term;
     public final long pid;
 
@@ -18,6 +19,7 @@ public class Leader extends TimerTask {
         this.group      = theGroup;
         this.middleware = theMiddleware;
         this.lifeSigns  = new HashMap<Long, Long>(100);
+        this.runCount   = 0;
         this.pid  = pid;
         this.term = term;
     }
@@ -45,18 +47,21 @@ public class Leader extends TimerTask {
         System.err.println("Leader.run()");
         long now  = System.currentTimeMillis();
         long then = now - 3 * HEARTBEAT_PERIOD;
-        List<Long> dropped = new ArrayList<Long>(10);
-        for (Map.Entry<Long,Long> item: lifeSigns.entrySet()) {
-            if (item.getValue() < then) {
-                long pid = item.getKey();
-                group.remove(pid);
-                dropped.add(pid);
-                System.err.printf("Leader.drop(%d)\n", pid);
-                middleware.sendGroup(new Member.Leave(pid), true);
-           }
+        if (runCount > 2) {
+            List<Long> dropped = new ArrayList<Long>(10);
+            for (Map.Entry<Long,Long> item: lifeSigns.entrySet()) {
+                if (item.getValue() < then) {
+                    long pid = item.getKey();
+                    group.remove(pid);
+                    dropped.add(pid);
+                    System.err.printf("Leader.drop(%d)\n", pid);
+                    middleware.sendGroup(new Member.Leave(pid), true);
+                }
+            }
+            for (Long pid : dropped)
+                lifeSigns.remove(pid);
         }
-        for (Long pid : dropped)
-            lifeSigns.remove(pid);
+        runCount++;
         middleware.sendGroup(new Heartbeat(now, pid, term), false);
     }
 
