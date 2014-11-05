@@ -91,6 +91,14 @@ cloud-hosted computing systems such as amazon web services, many
 'jobs' in real-world data centers really do have an economic value
 assigned to them.
 
+Although the nodes in this system sell and buy electrical energy in
+near-realtime, this system is assumed to act in an advisory, and not
+mandatory, fashion. That is to say, if a given node has agreed to buy
+10kWh for a particular time period, and it really uses 11kWh, it is
+assumed that this discrepancy is penalized by paying a higher
+tariff. A client should not be shutdown for failing to negotiate power
+usage.
+
 
 # State of the art
 
@@ -314,13 +322,119 @@ and no host can reach a majority of the former group, no host can
 elect itself. This is intentional, as no consensus can be expected to
 be reached in that case.
 
+# Power auctions
+
+The group leader automatically assumes the role of power broker. The
+price is set using a random walk algorithm that periodically computes
+a new energy price, which is then multicast to the group. Clients then
+compute the amount of energy they wish to buy, based upon the price of
+energy, the economic value of their job, and the relative value of
+more energy (and more computational power) to the completion of their
+job. This amount is then multicast back to the group, which replicates
+the decisions of all hosts. It is assumed that the broker will use
+this amount for continued negotiations.
+
+Because the auctions are relevant for a particular time period they
+are marked with a specific time and duration. To compensate for clock
+skew each heartbeat message carries with it the time it was sent
+according to the leader. With this information a client can compute
+the average offset between its clock and that of the leader and
+accurately estimate when this time period actually occurs.
+
 # Failure modes
 
+Using heartbeat and lifesign messages, the system can identify and
+tolerate a crash failure, incuding failure of the leader node. Channel
+ommissions are dealt with using message resending and
+acknowledgements. Message reordering and duplicate deliveries also
+dealt with correctly using a message sequencer and a holdback queue.
 
+What happens in case of a catastrophic network split depends on which
+side of the split the majority resides. In case the old leader is
+split from the majority a second leader will be elected, which will
+then proceed in dropping the hosts on the other side of the split. The
+old leader will not step down, however when the network is restored
+the second leader will take over since it must have been elected in a
+later term. The second leader will then proceed in giving hosts in the
+newly reconnected group new PIDs, since it will have assumed these
+nodes dead. Note that network splits are common events in data
+centers [3].
 
+Because the system relies on resending of third-party messages for
+guaranteeing delivery, it is very sensitive to byzantine failures or
+attacks. A possible solution to this - indeed a sensible precaution,
+given that the messages transmitted carry a financial obligation with
+them - is to sign the cryptographically messages using a
+public/private key pair. This would prohibit message forgery.
+
+Using negative acknowledgments / resend requests, multicast delivery
+is not entirely guaranteed, as is demonstrated by the following chain
+of events:
+
+* Node A multicasts message A:1
+* Only Node B receives message A:1. 
+* Node A crashes.
+* Node B multicasts message B:1, which is eventually delivered to all
+  nodes via resending
+* Node B then crashes  
+
+If node B had crashed immediately after receiving A:1 (before sending
+B:1), we could have claimed some form of consistency, since no
+*living* nodes ever delivered A:1. However because node B was able to
+send B:1, we essentially have a delivered message B:1 without it's
+causal predecessor. The system doesn't promise causually ordered
+delivery, however in some cases it would have been useful.
+
+A clear example where causual ordering would have been useful is group
+management in conditions of leader change. Suppose the following
+sequence of events would occur:
+
+* Node X and Y both join the network at the same time.
+* Leader A adds node X under PID 17 (message A:100). Node B does not
+  initially deliver this message, but node C does.
+* Leader A crashes.
+* Node B is elected leader.
+* Node B adds node Y under PID 17 (B:88), and node X under PID 18 (B:89).
+* Node B sends out heartbeat messages, causing node C to resend Leader
+  A's message (A:100) that added node X under PID 17.
+* To node B, Node X now occupies both PID 17 and PID 18, and node Y
+  does not have a PID.
+* This causes node B to assign Node Y PID 19.
+* Node D, which already delivered A:100, is not effected by the
+  retransmission of A:100, which causes it to think node X has PID 18,
+  and now node Y has PID 19 as well as 17.
+* Since Node B thinks that the lifesign messages from node X belong to
+  PID 17 (which was last added in node B's address-to-pid map), so it
+  will eventually drop PID 18 (B:90).
+* This will make node D think that node X is dead, which it is not.
+
+Causally ordered messages would not prohibit this sequence of events
+to occur, since the sending of A:100 did not happen-before the sending
+of either B:88 or B:89. However, having the vector clocks of these
+messages would allow the group management routines to determine, in
+case of a leader change, whether the join and leave messages causually
+follow each other. Combined with a message log this would allow the
+group to roll back to a state consistent with that of the new leader.
+
+A radically different solution, rather than having a single leader
+assign PIDs to new hosts, would be to have nodes assign a (randomly
+generated) PID to themselves. New hosts would then repeatedly announce
+a their pressence with a new PID until the group leader verifies that
+it is indeed unique, at which point the new host is considered to be
+added to the group. Alternatively, the public key mentioned above,
+necessary to verify signed messages, could be used as a unique
+process identifier.
+
+Node identities are not persisted across crashes, which is unrealistic
+for a system which intends to deal in financial matters. Again, a
+persistent public key is a far more realistic and practical means of
+identification for individual nodes, given that it also protects
+against message forgery.
 
 [3] http://www.google.com/about/datacenters/efficiency/internal/
 [4] http://www.google.com/about/datacenters/efficiency/external/index.html#best-practices
 [5] http://www.apcmedia.com/salestools/WTOL-7ANTKY/WTOL-7ANTKY_R3_EN.pdf
 [6] http://www8.hp.com/us/en/hp-information/environment/hp-data-center-smart-grid.html#.VFqS3XVdWkA
 [7] http://www.greentechmedia.com/articles/read/putting-the-smart-grid-enabled-data-center-to-the-test
+
+ 
