@@ -109,8 +109,8 @@ strategies to adapt production to the demand. The main strategy is to
 have a diverse array of power plants, some which can be started and
 stopped quickly (such as hydroelectrical and gas-fired power plants),
 and some which cannot adapt quickly but which are more economical in
-operation, such as coal-fired and nuclear power plants.\\
-\\
+operation, such as coal-fired and nuclear power plants.
+
 This strategy relies heavily on the use of fossil fuels, whose output
 is predictable. This poses new challenges in the coming century as
 fossil fuels become increasingly scarce and expensive. Moreover, the
@@ -119,8 +119,8 @@ climate change which, when it occurs, is certain to have large and
 disastrous impacts on natural ecosystems as well as human habitats and
 the economy. So to continue to use electrical energy - as any modern
 economy must - other, renewable resources need to be developed. Chief
-among these are wind energy and photovoltaic solar energy.\\
-\\
+among these are wind energy and photovoltaic solar energy.
+
 However, unlike fossil fuels the production of these energy from
 renewable sources cannot be adapted to meet demand. Energy is produced
 whenever the wind blows and the sun shines, even if we'd rather use it
@@ -129,8 +129,8 @@ increased at times of great demand (such as during important sporting
 events). So the use of renewable energy brings about new challenges
 for the managers of the electricity grid. It is believed that this
 challenge can be met only by the implementation of so-called 'smart
-grid' systems.\\
-\\
+grid' systems.
+
 The key idea of a smart grid is that the electricity consumers are
 made aware of and can react to (sudden) changes in the production
 capacity of the electricity grid. Just how such systems adapt to
@@ -141,19 +141,18 @@ abundant. For another example, modern computer systems contain
 sophisticated power management systems which allow them to vary energy
 use and performance nearly instantaneously. This adaptive capability
 may prove very valuable in combination with a smart grid system.
-
 \section{Problem statement}
 As the use of computing in modern societies has grown, so has the
 energy use devoted to computation. In 2010 this was measured to be 1%
-of total human energy consumption \cite{koomey}. More significantly, in the
+of total human energy consumption [1]. More significantly, in the
 period between 2005 and 2010 the energy used by computing doubled,
-growing by 16,7\% each year \cite{koomey}. With the development of cloud
+growing by 16,7% each year [1]. With the development of cloud
 computing, an increasing proportion of this energy is used in data
 centers. Given these trends, it becomes important to manage the energy
 consumption by data centers. Fortunately, because of the
 aforementioned sophisticated power management systems, this is
-practically doable.\\
-\\
+practically doable.
+
 We implemented a system designed to allow individual energy consumers
 (i.e. servers) in a data center to adapt to changes in energy
 availability. We assume that the relative abundance or scarcity of
@@ -171,8 +170,8 @@ into more expensive sources and that an energy broker process
 negotiates the best possible deal between multiple energy producers,
 thereby providing the clients of this system with a single
 price. These negotiations between broker and producers are outside the
-scope of this project, though.\\
-\\
+scope of this project, though.
+
 The clients of this system are the servers that can adapt their energy
 use individually. As servers in data centers are typically stacked in
 a rack, and racks need to be cooled as a unit, it might make more
@@ -188,8 +187,8 @@ client will have it's own schedule for energy use and economic value
 and can adapt it's use accordingly. Note that with the development of
 cloud-hosted computing systems such as amazon web services, many
 'jobs' in real-world data centers really do have an economic value
-assigned to them.\\
-\\
+assigned to them.
+
 Although the nodes in this system sell and buy electrical energy in
 near-realtime, this system is assumed to act in an advisory, and not
 mandatory, fashion. That is to say, if a given node has agreed to buy
@@ -197,25 +196,24 @@ mandatory, fashion. That is to say, if a given node has agreed to buy
 assumed that this discrepancy is penalized by paying a higher
 tariff. A client should not be shutdown for failing to negotiate power
 usage.
-
 \section{State of the Art}
-Energy consumption is an important issue for data centers. Data centers should always use energy as effective as possible. A metric to measure the effectiveness is the power usage effectiveness (PUE). This metric measures the amount of energy that was used as overhead compared to the energy used by servers. A smart energy grid should help to increase the PUE.\\
-\\
-One of the companies that uses this metric for their data centers is Google\cite{googlePUE}. Google states a few actions they take in order to use energy as efficiently as possible. These are: controlling air flow, temperature regulation and energy distribution optimization\cite{googleServers}. The last action is the one our project is focussing on. Energy is saved by optimizing AC/DC conversion for power to servers. Furthermore, redundant components are removed (e.g. slots for video cards).\\
-\\
-A different approach is to use efficient Power Distribution Units (PDU)\cite{PDU}. PDU's are placed just in front of a number of servers in a data center and efficiently distribute the energy across these servers. Rather than using a few large IT devices to distribute the power, thousands of PDU's are used to achieve a higher level of PUE. This approach lies closer to what we hope to improve with our project.\\
-\\
-Besides losing as little energy as possible on transport to the server, it's also important to make sure that appropriate amounts of energy are sent to appropriate places. This can be achieved by using a smart energy grid. One company that has implemented this technology is HP\cite{HP}. The HP Data Center Smart Grid collects and communicates thousands of measurements across IT systems.  This technique of HP is supposed to be used by IT managers. Based on the data collected, IT managers can manually optimize the power usage on a moment-to-moment basis.\\
-\\
-Another interesting approach is taken by Power Assure\cite{PowerAssure}. Instead of focussing on optimizing energy distribution within a single data center, the application of Power Assure searches for the optimal energy distribution for a set of data centers. It makes use of the fact that power does not have the same price  at a certain moment everywhere around the world. When a data center has to do a lot of computationally expensive jobs and the power price is high at that moment, it may shift the jobs to another data center in the world where energy is cheaper at that particular moment. 
+Energy consumption is an important issue for data centers. Data centers should always use energy as effective as possible. A metric to measure the effectiveness is the power usage effectiveness (PUE). This metric measures the amount of energy that was used as overhead compared to the energy used by servers. A smart energy grid should help to increase the PUE. 
+
+One of the companies that uses this metric for their data centers is Google[3]. Google states a few actions they take in order to use energy as efficiently as possible. These are: controlling air flow, temperature regulation and energy distribution optimization[4]. The last action is the one our project is focussing on. Energy is saved by optimizing AC/DC conversion for power to servers. Furthermore, redundant components are removed (e.g. slots for video cards).
+
+A different approach is to use efficient Power Distribution Units (PDU)[5]. PDU's are placed just in front of a number of servers in a data center and efficiently distribute the energy across these servers. Rather than using a few large IT devices to distribute the power, thousands of PDU's are used to achieve a higher level of PUE. This approach lies closer to what we hope to improve with our project.
+
+Besides losing as little energy as possible on transport to the server, it's also important to make sure that appropriate amounts of energy are sent to appropriate places. This can be achieved by using a smart energy grid. One company that has implemented this technology is HP[6]. The HP Data Center Smart Grid collects and communicates thousands of measurements across IT systems.  This technique of HP is supposed to be used by IT managers. Based on the data collected, IT managers can manually optimize the power usage on a moment-to-moment basis.
+
+Another interesting approach is taken by Power Assure[7]. Instead of focussing on optimizing energy distribution within a single data center, the application of Power Assure searches for the optimal energy distribution for a set of data centers. It makes use of the fact that power does not have the same price  at a certain moment everywhere around the world. When a data center has to do a lot of computationally expensive jobs and the power price is high at that moment, it may shift the jobs to another data center in the world where energy is cheaper at that particular moment. 
 
 \section{Relation to Distributed Systems}
 Throughout our entire smart energy grid for data centers many
 techniques from the field of distributed systems are used. Even the
 data center itself can be considered as a distributed system, since it
 consists of several nodes all connected with each other through a
-network.\\
-\\
+network.
+
 The most used technique is multicast, specifically ordered reliable
 multicast based on IP multicast.  Nodes in a group have to reach
 concensus on the energy price together with the broker. In order to
@@ -223,24 +221,24 @@ achieve this, the broker sends out a message using multicast to let
 hosts know the price of energy for a certain amount of energy for a
 certain amount of time. Nodes then try to come up with the amount of
 energy that they would like to buy. This is then multicast across all
-nodes for replication of the bought amounts.\\
-\\
+nodes for replication of the bought amounts.
+
 Nodes are not always on. Whenever a node has nothing to do it may not
 be powered and connected to the network. We use dynamic host discovery
 to ensure that nodes can properly join the energy grid when they do
 need to do computations. A node knows which group it wants to join. It
 sends a message to the leader that it wants to join that particular
 group. The leader then acknowledges this join request and the entire
-group is notified of a new node entering the group.\\
-\\
+group is notified of a new node entering the group.
+
 Furthermore, it's also possible that nodes leave, including broker
 nodes that fulfill a leading position. In this case we need to assign
 a new broker. This is done by using the technique leader election. As
 soon as a node notices that the broker is down, a node will start an
 election given that the node itself can become the new broker. The
 election variant that we use in our energy grid is the Bully
-algorithm.\\
-\\
+algorithm.
+
 It may happen that nodes in the smart energy grid crash. This can
 occur due to hardware failure or human error, for example. There is
 thus the need to be able to solve crash faults as well as omission
@@ -252,10 +250,9 @@ to all nodes within a group. In case of a failure of sending to one
 node, the node requests a resend of the message to the sender. In case
 of missing a multicast message, the entire group is asked to resend
 the message to the node that's missing a message.
-
 \section{Details of the technical implementation}
 Many aspects of our system are based on the raft consensus protocol
-\cite{raft}. However, there are several important differences. The main
+[2]. However, there are several important differences. The main
 difference is that we use asynchronous IP multicast to deliver
 messages to the group of computers, whereas raft uses peer-to-peer
 remote procedure calls. This was done because raft is designed for a
@@ -271,15 +268,15 @@ peer-to-peer socket, even those destined for the multicast group. This
 is possible due to the open nature of IP multicast, which allows any
 sender to send messages. As a result, messages send by any process to
 the multicast group are also delivered to that same process. This
-property simplifies the design because there are fewer exceptions.\\
-\\
+property simplifies the design because there are fewer exceptions.
+
 To ensure reliable delivery of peer-to-peer messages, all sent
 messages are kept in a buffer and need to be acknowledged by the
 receiver. Until they are acknowledged they will be sent periodically,
 stopping only when the failure of the receiver has been
 reported. Sequence numbers are used to distinguish different messages
-and to ensure ordering.\\
-\\
+and to ensure ordering.
+
 Multicast delivery on the other hand uses negative acknowledgements,
 or resend requests, to ensure eventual delivery to all hosts. Just
 as for peer-to-peer messages, a process issues sequence number on each
@@ -296,7 +293,6 @@ the group. Whenever a multicast message has been delivered, a process
 retains it. So if any host has delivered a given multicast message,
 all other hosts can still request retransmission if the original
 sender has died.
-
 \subsection{Heartbeat Messages}
 Resend requests only guarantee delivery as long as all hosts
 eventually learn of messages that they have missed. For this and other
@@ -307,18 +303,18 @@ messsage known to the leader. When a host receives such a message, it
 can check if it has sent a more recent message itself, or if it has
 delivered a more recent message from another host that is now
 dead. Represented in pseudocode this algorithm is as follows:
-\begin{lstlisting}[language=Python]
-for senderPid, sequenceNr in heartbeatState:
-  if senderPid == myPid and sequenceNr > lastSendMessage.sequenceNr:
-      resendMessagesSince(sequenceNr)
-  else if isDead(senderPid) and sequenceNr < lastDeliveredMessage(senderPid).sequenceNr:
-      resendMessagesOf(senderPid, sequenceNr)
+\begin{lstlisting}
+     for senderPid, sequenceNr in heartbeatState:
+        if senderPid == myPid and sequenceNr > lastSendMessage.sequenceNr:
+            resendMessagesSince(sequenceNr)
+        else if isDead(senderPid) and sequenceNr < lastDeliveredMessage(senderPid).sequenceNr:
+           resendMessagesOf(senderPid, sequenceNr)
 \end{lstlisting}
 Because a leader is always eventually elected and all crash failures
 are eventually noticed and relayed, this ensures the eventual delivery
 of all messages, as long as at least one of the hosts that delivered
-the message is alive and reachable.\\
-\\
+the message is alive and reachable.
+
 Ordered messages that are sent by an unknwon host are dropped, because
 otherwise they could be delivered multiple times. Thus, a host must be
 known before its (reliable) messages can be delivered. Because of
@@ -334,8 +330,8 @@ discovery. We use an IP number in the range allocated for local use,
 namely 224.0.0.224. When a host connects to the network, it connects
 to the IP multicast group and waits for several heartbeat periods to
 listen for heartbeat messages. When it receives a heartbeat it assumes
-the sender to be its leader and replies with a lifesign message.\\
-\\
+the sender to be its leader and replies with a lifesign message.
+
 The group leader in turn is responsible for managing the hosts in the
 shared group. When it receives a lifesign message from a unknown host,
 it assigns a process id (PID) to the host, and multicasts a 'join'
@@ -351,18 +347,19 @@ the network, otherwise the host cannot be uniquely addressed. So each
 host is eventually assigned a unique PID, and each host recognises
 another by mapping their externally visible network address to the
 leader-assigned PID. This PID is also used to address a message to any
-other node.\\
-\\
+other node.
+
 When a known host fails to respond to heartbeat messages for a given
 period of time - a multiple of the heartbeat period of the system -
 the leader notices, and sends a 'leave' message to the group telling
 each host to remove the host from the group. A PID is assigned only
 once, so if a new process is connected with the same network address
-as an earlier process it will be assigned a new, unique PID.\\
-\\
+as an earlier process it will be assigned a new, unique PID.
+
 Consensus over the hosts in this group is reached, in principle, by
 the reliable, ordered delivery of all join and leave messages sent by
 all leaders.
+
 
 \subsection{Bootstrapping and leader election}
 As mentioned above, the system can only deliver reliable messages to a
@@ -370,8 +367,8 @@ host it already knows, from a host that receiver also knows. This
 poses a special challenge for leader election, since without a leader
 no attempts are made to determine who belongs to the group and who
 does not. Our solution is to use unreliable messaging for leader
-election (and hope for the best).\\
-\\
+election (and hope for the best).
+
 Inspired by the raft consensus algorithm, we use randomized election
 timeouts to decrease the chances that two nodes try to elect
 themselves at the same time. An election is started when a host
@@ -383,15 +380,15 @@ another timeout it has received a majority of votes, it declares
 itself leader and starts sending out heartbeat messages. The sending
 of heartbeat messages signals to other nodes that is hasb ecome a
 leader. On the other hand, if it receives a new heartbeat message
-before that time the election is canceled.\\
-\\
+before that time the election is canceled.
+
 Election (and leadership) rounds are divided into terms, which are
 monotonically incrementing numbers. Before a host sends out vote
 request messages it increases its current election term. A host only
 replies positively to a vote request if the election term of the
 requester is equal or greater than its own election term and if it
-hasn't voted for any other node during the same term.\\
-\\
+hasn't voted for any other node during the same term.
+
 Because the vote request and vote reply messages are sent unreliably,
 omission failures may cause only a subset of hosts to receive the
 initial request, and only a subset of the replies may be seen by the
@@ -418,8 +415,8 @@ energy, the economic value of their job, and the relative value of
 more energy (and more computational power) to the completion of their
 job. This amount is then multicast back to the group, which replicates
 the decisions of all hosts. It is assumed that the broker will use
-this amount for continued negotiations.\\
-\\
+this amount for continued negotiations.
+
 Because the auctions are relevant for a particular time period they
 are marked with a specific time and duration. To compensate for clock
 skew each heartbeat message carries with it the time it was sent
@@ -431,8 +428,8 @@ Using heartbeat and lifesign messages, the system can identify and
 tolerate a crash failure, incuding failure of the leader node. Channel
 ommissions are dealt with using message resending and
 acknowledgements. Message reordering and duplicate deliveries also
-dealt with correctly using a message sequencer and a holdback queue.\\
-\\
+dealt with correctly using a message sequencer and a holdback queue.
+
 What happens in case of a catastrophic network split depends on which
 side of the split the majority resides. In case the old leader is
 split from the majority a second leader will be elected, which will
@@ -442,15 +439,15 @@ the second leader will take over since it must have been elected in a
 later term. The second leader will then proceed in giving hosts in the
 newly reconnected group new PIDs, since it will have assumed these
 nodes dead. Note that network splits are common events in data
-centers\cite{aphyr}.\\
-\\
+centers [3].
+
 Because the system relies on resending of third-party messages for
 guaranteeing delivery, it is very sensitive to byzantine failures or
 attacks. A possible solution to this - indeed a sensible precaution,
 given that the messages transmitted carry a financial obligation with
 them - is to sign the cryptographically messages using a
-public/private key pair. This would prohibit message forgery.\\
-\\
+public/private key pair. This would prohibit message forgery.
+
 Using negative acknowledgments / resend requests, multicast delivery
 is not entirely guaranteed, as is demonstrated by the following chain
 of events:
@@ -469,8 +466,8 @@ B:1), we could have claimed some form of consistency, since no
 *living* nodes ever delivered A:1. However because node B was able to
 send B:1, we essentially have a delivered message B:1 without it's
 causal predecessor. The system doesn't promise causually ordered
-delivery, however in some cases it would have been useful.\\
-\\
+delivery, however in some cases it would have been useful.
+
 A clear example where causual ordering would have been useful is group
 management in conditions of leader change. Suppose the following
 sequence of events would occur:
@@ -495,6 +492,7 @@ sequence of events would occur:
   will eventually drop PID 18 (B:90).
 \item This will make node D think that node X is dead, which it is not.
 \end{itemize}
+
 Causally ordered messages would not prohibit this sequence of events
 to occur, since the sending of A:100 did not happen-before the sending
 of either B:88 or B:89. However, having the vector clocks of these
@@ -517,14 +515,4 @@ for a system which intends to deal in financial matters. Again, a
 persistent public key is a far more realistic and practical means of
 identification for individual nodes, given that it also protects
 against message forgery.
-
-%----------------------------------------------------------------------------------------
-%       BIBLIOGRAPHY
-%----------------------------------------------------------------------------------------
-
-\cleardoublepage
-\addcontentsline{toc}{section}{References}
-\bibliographystyle{unsrtnat}
-\bibliography{references}
-
 \end{document}

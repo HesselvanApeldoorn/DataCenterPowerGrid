@@ -1,0 +1,12 @@
+\contentsline {section}{\numberline {1}Context/background}{3}{section.1}
+\contentsline {section}{\numberline {2}Problem statement}{3}{section.2}
+\contentsline {section}{\numberline {3}State of the Art}{4}{section.3}
+\contentsline {section}{\numberline {4}Relation to Distributed Systems}{5}{section.4}
+\contentsline {section}{\numberline {5}Details of the technical implementation}{5}{section.5}
+\contentsline {subsection}{\numberline {5.1}Reliable ordered messaging}{5}{subsection.5.1}
+\contentsline {subsection}{\numberline {5.2}Heartbeat Messages}{6}{subsection.5.2}
+\contentsline {subsection}{\numberline {5.3}Host discovery and failure detection}{6}{subsection.5.3}
+\contentsline {subsection}{\numberline {5.4}Bootstrapping and leader election}{7}{subsection.5.4}
+\contentsline {subsection}{\numberline {5.5}Power auctions}{8}{subsection.5.5}
+\contentsline {subsection}{\numberline {5.6}Failure modes}{8}{subsection.5.6}
+\contentsline {section}{References}{10}{subsection.5.6}
