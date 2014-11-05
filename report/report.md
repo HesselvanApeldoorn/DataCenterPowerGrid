@@ -41,6 +41,7 @@ sophisticated power management systems which allow them to vary energy
 use and performance nearly instantaneously. This adaptive capability
 may prove very valuable in combination with a smart grid system.
 
+
 # Problem Statement
 
 As the use of computing in modern societies has grown, so has the
@@ -89,6 +90,19 @@ and can adapt it's use accordingly. Note that with the development of
 cloud-hosted computing systems such as amazon web services, many
 'jobs' in real-world data centers really do have an economic value
 assigned to them.
+
+
+# State of the art
+
+Energy consumption is an important issue for data centers. Data centers should always use energy as effective as possible. A metric to measure the effectiveness is the power usage effectiveness (PUE). This metric measures the amount of energy that was used as overhead compared to the energy used by servers. A smart energy grid should help to increase the PUE. 
+
+One of the companies that uses this metric for their data centers is Google[3]. Google states a few actions they take in order to use energy as efficiently as possible. These are: controlling air flow, temperature regulation and energy distribution optimization[4]. The last action is the one our project is focussing on. Energy is saved by optimizing AC/DC conversion for power to servers. Furthermore, redundant components are removed (e.g. slots for video cards).
+
+A different approach is to use efficient Power Distribution Units (PDU)[5]. PDU's are placed just in front of a number of servers in a data center and efficiently distribute the energy across these servers. Rather than using a few large IT devices to distribute the power, thousands of PDU's are used to achieve a higher level of PUE. This approach lies closer to what we hope to improve with our project.
+
+Besides losing as little energy as possible on transport to the server, it's also important to make sure that appropriate amounts of energy are sent to appropriate places. This can be achieved by using a smart energy grid. One company that has implemented this technology is HP[6]. The HP Data Center Smart Grid collects and communicates thousands of measurements across IT systems.  This technique of HP is supposed to be used by IT managers. Based on the data collected, IT managers can manually optimize the power usage on a moment-to-moment basis.
+
+Another interesting approach is taken by Power Assure[7]. Instead of focussing on optimizing energy distribution within a single data center, the application of Power Assure searches for the optimal energy distribution for a set of data centers. It makes use of the fact that power does not have the same price  at a certain moment everywhere around the world. When a data center has to do a lot of computationally expensive jobs and the power price is high at that moment, it may shift the jobs to another data center in the world where energy is cheaper at that particular moment. 
 
 
 # Relation to Distributed Systems
@@ -302,3 +316,11 @@ be reached in that case.
 
 # Failure modes
 
+
+
+
+[3] http://www.google.com/about/datacenters/efficiency/internal/
+[4] http://www.google.com/about/datacenters/efficiency/external/index.html#best-practices
+[5] http://www.apcmedia.com/salestools/WTOL-7ANTKY/WTOL-7ANTKY_R3_EN.pdf
+[6] http://www8.hp.com/us/en/hp-information/environment/hp-data-center-smart-grid.html#.VFqS3XVdWkA
+[7] http://www.greentechmedia.com/articles/read/putting-the-smart-grid-enabled-data-center-to-the-test
