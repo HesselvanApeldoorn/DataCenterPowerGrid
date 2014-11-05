@@ -93,26 +93,48 @@ assigned to them.
 
 # Relation to Distributed Systems
 
-Throughout our entire smart energy grid for data centers many 
-techniques from the field of distributed aystems are used. Even the 
-data center itself can be considered as a distributed system. Since
-it consists of several nodes all connected with each other through a
+Throughout our entire smart energy grid for data centers many
+techniques from the field of distributed systems are used. Even the
+data center itself can be considered as a distributed system, since it
+consists of several nodes all connected with each other through a
 network.
 
-The most used technique is multicast, specifically ordered reliable IP multicast. 
-Nodes in a group have to reach concensus on the energy price together
-with the broker. In order to achieve this, the broker sends out a
-message using IP multicast to let nodes know the price of energy
-for a certain amount of energy for a certain amount of time. Nodes
-then try to come up with the amount of energy that they would like
-to buy. This is then multicast across all nodes for replication
-of the bought amounts.
+The most used technique is multicast, specifically ordered reliable
+multicast based on IP multicast.  Nodes in a group have to reach
+concensus on the energy price together with the broker. In order to
+achieve this, the broker sends out a message using multicast to let
+hosts know the price of energy for a certain amount of energy for a
+certain amount of time. Nodes then try to come up with the amount of
+energy that they would like to buy. This is then multicast across all
+nodes for replication of the bought amounts.
 
-Nodes are not always on. Whenever a node has nothing to do it may not be powered and connected to the network. We use the distributed system technique dynamic host discovery to ensure that nodes can properly join the energy grid when they do need to do computations. A node knows which group it wants to join. It sends a message to the leader that it wants to join that particular group. The leader then acknowledges this join request and the entire group is notified of a new node entering the group.
+Nodes are not always on. Whenever a node has nothing to do it may not
+be powered and connected to the network. We use dynamic host discovery
+to ensure that nodes can properly join the energy grid when they do
+need to do computations. A node knows which group it wants to join. It
+sends a message to the leader that it wants to join that particular
+group. The leader then acknowledges this join request and the entire
+group is notified of a new node entering the group.
 
-Furthermore, it's also possible that nodes leave, including broker nodes that fulfill a leading position. In this case we need to assign a new broker. This is done by using the technique leader election. As soon as a node notices that the broker is down, a node will start an election given that the node itself can become the new broker. The election variant that we use in our energy grid is the Bully algorithm.
+Furthermore, it's also possible that nodes leave, including broker
+nodes that fulfill a leading position. In this case we need to assign
+a new broker. This is done by using the technique leader election. As
+soon as a node notices that the broker is down, a node will start an
+election given that the node itself can become the new broker. The
+election variant that we use in our energy grid is the Bully
+algorithm.
 
-It may happen that nodes in the smart energy grid crash. This can occur due to hardware failure or human error, for example. There is thus the need to be able to solve crash faults as well as omission faults. In our project crash faults are solved by sending heartbeats. Which means that for every small period of time, a message is send to a node to check if it's still alive. Omission faults are present in sending messages to just one other node or multicasting it to all nodes within a group. In case of a failure of sending to one node, the node requests a resend of the message to the sender. In case of missing a multicast message, the entire group is asked to resend the message to the node that's missing a message.
+It may happen that nodes in the smart energy grid crash. This can
+occur due to hardware failure or human error, for example. There is
+thus the need to be able to solve crash faults as well as omission
+faults. In our project crash faults are solved by sending
+heartbeats. Which means that for every small period of time, a message
+is send to a node to check if it's still alive. Omission faults are
+present in sending messages to just one other node or multicasting it
+to all nodes within a group. In case of a failure of sending to one
+node, the node requests a resend of the message to the sender. In case
+of missing a multicast message, the entire group is asked to resend
+the message to the node that's missing a message.
 
 
 # Details of the technical implementation
@@ -271,10 +293,12 @@ itself leader unless it has received a majority vote compared to the
 maximum of this group size estimate and the total votes it actually
 receives. Thus, even though messages may be lost, a host cannot
 declare itself leader unless it actually received a majority vote from
-the group. This also means that if a network split occurs and no host
-can reach a majority of the former group, no host can elect
-itself. This is intentional, as no consensus can be expected to be
-reached in that case.
+the group. The exception is the initial case of network setup, in
+which case the size of the network is not known beforehand. Using the
+size of the estimated group also means that if a network split occurs
+and no host can reach a majority of the former group, no host can
+elect itself. This is intentional, as no consensus can be expected to
+be reached in that case.
 
 # Failure modes
 
