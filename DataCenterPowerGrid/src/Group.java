@@ -37,12 +37,20 @@ class Group {
         return socketToPid.get(addr);
     }
 
+    public synchronized Set<Long> getPids() {
+        return pidToSocket.keySet();
+    }
+
     public synchronized boolean isAlive(long pid) {
         return pidToSocket.containsKey(pid);
     }
 
     public synchronized long nextPid() {
         return ++nextPid;
+    }
+
+    public synchronized long maxPid() {
+        return nextPid;
     }
 
     public synchronized int getSize() {

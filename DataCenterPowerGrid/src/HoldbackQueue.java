@@ -82,4 +82,8 @@ class HoldbackQueue {
         return list;
     }
 
+    public int getLastOf(long pid) {
+        return delivered.get(pid);
+    }
+
 }

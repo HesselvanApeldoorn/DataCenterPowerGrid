@@ -45,7 +45,9 @@ class Middleware extends Thread {
     private Group group;
 
     private Timer timer;
+
     private boolean stopped; // TODO - make this depend on socket / group connected status
+    private long pid = NO_PID;
 
     public static class ReceivedMessage {
         public final long timestamp;
@@ -220,6 +222,17 @@ class Middleware extends Thread {
         }
     }
 
+    public int[] getMessageState(long myPid) {
+        int state[] = new int[group.maxPid()]; // allocate an array for all nodes
+        for (int i = 0; i < state.length; i++) {
+            if (i == myPid) {
+                state[i] = sentMessages.getLastTo(GROUP_PID);
+            } else {
+                state[i] = groupQueue.getLastOf(i);
+            }
+        }
+        return state;
+    }
 
     public void run() {
         stopped = false;

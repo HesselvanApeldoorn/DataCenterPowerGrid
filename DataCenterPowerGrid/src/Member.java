@@ -12,7 +12,6 @@ class Member implements Dispatcher.Endpoint {
     private long      leaderPid = Middleware.NO_PID;
     private long            pid = Middleware.NO_PID;
     private long  lastHeartbeat = -1;
-    private SocketAddress votedFor = null;
     private int     currentTerm = 0;
 
     public Member(Group theGroup, Middleware theMiddleware, boolean candidate) {
@@ -26,6 +25,7 @@ class Member implements Dispatcher.Endpoint {
 
     private class Election extends TimerTask {
         /* Only possible reason to run an election is if you can be a candidate as well */
+        public final long period;
         public final long timeout;
 
         public boolean active = false;
@@ -34,6 +34,7 @@ class Member implements Dispatcher.Endpoint {
         private int positiveVotes;
 
         public Election(long period) {
+            this.period = period;
             this.timeout = 2*period + (new Random().nextLong() % period);
         }
 
@@ -43,9 +44,13 @@ class Member implements Dispatcher.Endpoint {
             long now = System.currentTimeMillis();
             if (active) {
                 countVotes();
-            } else if (lastHeartbeat < (now - timeout) && votedFor == null) {
+            } else if (canVote()) {
                 startElection();
             }
+        }
+
+        public boolean canVote() {
+            return lastHeartbeat < (System.currentTimeMillis() - 2*period);
         }
 
         private void startElection() {
@@ -80,7 +85,7 @@ class Member implements Dispatcher.Endpoint {
                 middleware.getTimer().schedule(leader, Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
                 middleware.sendGroup(new Leader.Heartbeat(System.currentTimeMillis(), pid, currentTerm), false);
             }
-             active = false;
+             active   = false;
         }
 
         public void onVoteReply(boolean reply, int term) {
@@ -134,12 +139,9 @@ class Member implements Dispatcher.Endpoint {
 
     public void onHeartbeat(long sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
         System.err.printf("onHeartbeat(%s, %d, %d);\n", address.toString(), timestamp, message.term);
-        // in theory, compute the difference between our received timestamp and
-        // the leaders timestamp. In practice, just reply saying you're alive
         lastHeartbeat = timestamp;
         // cancel any running elections
         election.active = false;
-        votedFor        = null;
         if (message.term >= currentTerm) {
             if (sender == Middleware.NO_PID) {
                 // This is a unknown, but valid leader for me, so I
@@ -154,8 +156,10 @@ class Member implements Dispatcher.Endpoint {
                 leader.cancel();
                 leader = null;
             }
+            currentTerm = message.term;
         }
-        // respond with a life sign
+        // in theory, compute the difference between our received timestamp and
+        // the leaders timestamp. In practice, just reply saying you're alive
         middleware.send(address, new Alive());
     }
 
@@ -178,14 +182,14 @@ class Member implements Dispatcher.Endpoint {
         return this.pid;
     }
 
-    public void onVoteRequest(SocketAddress sender, int term) {
+    public void onVoteRequest(long timestamp, SocketAddress sender, int term) {
         System.err.printf("onVoteRequest(%s, %d);\n", sender.toString(), term);
-        if (term > currentTerm || (term == currentTerm && votedFor == null)) {
-            votedFor    = sender;
-            currentTerm = term;
-            middleware.send(sender, new VoteReply(true, term));
-        } else {
+        if (term < currentTerm) {
             middleware.send(sender, new VoteReply(false, term));
+        } else if ((term == currentTerm && election.canVote()) || term > currentTerm) {
+            currentTerm   = term;
+            lastHeartbeat = timestamp;
+            middleware.send(sender, new VoteReply(true, term));
         }
     }
 
@@ -216,7 +220,7 @@ class Member implements Dispatcher.Endpoint {
         }
         case VOTE_REQUEST: {
             VoteRequest req = (VoteRequest)message.payload;
-            onVoteRequest(message.packet.getSocketAddress(), req.term);
+            onVoteRequest(message.timestamp, message.packet.getSocketAddress(), req.term);
             break;
         }
         case VOTE_REPLY: {

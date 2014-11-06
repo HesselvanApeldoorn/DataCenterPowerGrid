@@ -48,18 +48,13 @@ public class Leader extends TimerTask {
         long now  = System.currentTimeMillis();
         long then = now - 3 * HEARTBEAT_PERIOD;
         if (runCount > 2) {
-            List<Long> dropped = new ArrayList<Long>(10);
-            for (Map.Entry<Long,Long> item: lifeSigns.entrySet()) {
-                if (item.getValue() < then) {
-                    long pid = item.getKey();
-                    group.remove(pid);
-                    dropped.add(pid);
-                    System.err.printf("Leader.drop(%d)\n", pid);
-                    middleware.sendGroup(new Member.Leave(pid), true);
+            for (Long hostPid : group.getPids()) {
+                if (lifeSigns.get(hostPid) < then) {
+                    group.remove(hostPid);
+                    System.err.printf("Leader.drop(%d)\n", hostPid);
+                    middleware.sendGroup(new Member.Leave(hostPid), true);
                 }
             }
-            for (Long pid : dropped)
-                lifeSigns.remove(pid);
         }
         runCount++;
         middleware.sendGroup(new Heartbeat(now, pid, term), false);

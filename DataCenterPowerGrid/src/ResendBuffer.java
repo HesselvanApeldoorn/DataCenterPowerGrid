@@ -29,4 +29,10 @@ public class ResendBuffer {
         return list.get(sequence_nr - first);
     }
 
+    public int getLastTo(long receiver) {
+        List<Message> list = messageLists.get(receiver);
+        if (list == null || list.size() == 0)
+            return 0;
+        return list.get(list.size() - 1).sequence_nr;
+    }
 }
