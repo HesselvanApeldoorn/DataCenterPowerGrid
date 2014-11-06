@@ -8,6 +8,7 @@ class Dispatcher implements Runnable {
     }
 
     public enum Type {
+        // group stuff
         HEARTBEAT,
         WELCOME,
         ALIVE,
@@ -15,6 +16,9 @@ class Dispatcher implements Runnable {
         LEAVE,
         VOTE_REQUEST,
         VOTE_REPLY,
+        // energy stuff
+        SALE,
+        ORDER,
     }
 
 
@@ -28,6 +32,8 @@ class Dispatcher implements Runnable {
         typeMap.put(Member.Leave.class, Type.LEAVE);
         typeMap.put(Member.VoteRequest.class, Type.VOTE_REQUEST);
         typeMap.put(Member.VoteReply.class, Type.VOTE_REPLY);
+        typeMap.put(EnergyAuction.Sale.class, Type.SALE);
+        typeMap.put(EnergyAuction.Order.class, Type.ORDER);
     }
 
     public static Type getMessageType(Middleware.ReceivedMessage message) {

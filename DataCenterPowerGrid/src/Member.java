@@ -6,6 +6,7 @@ import java.util.Random;
 class Member implements Dispatcher.Endpoint {
     private Group      group;
     private Middleware middleware;
+    private EnergyAuction auction;
     private Election   election = null;
     private Leader     leader   = null;
 
@@ -14,13 +15,13 @@ class Member implements Dispatcher.Endpoint {
     private long lastHeartbeat = -1;
 
 
-    public Member(Group theGroup, Middleware theMiddleware, boolean candidate) {
+    public Member(Group theGroup, Middleware theMiddleware, EnergyAuction auction) {
         this.group      = theGroup;
         this.middleware = theMiddleware;
-        if (candidate) {
-            this.election = new Election(Leader.HEARTBEAT_PERIOD);
-            this.middleware.getTimer().schedule(this.election, this.election.timeout, this.election.timeout);
-        }
+        this.auction    = auction;
+        this.election = new Election(Leader.HEARTBEAT_PERIOD);
+        this.middleware.getTimer().schedule(this.election, this.election.timeout, this.election.timeout);
+
     }
 
     private class Election extends TimerTask {
@@ -85,6 +86,8 @@ class Member implements Dispatcher.Endpoint {
                 leader = new Leader(group, middleware, currentTerm);
                 leader.sendHeartbeat();
                 middleware.getTimer().schedule(leader, Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
+                // start auction broker
+                auction.startBroker(Leader.HEARTBEAT_PERIOD);
             }
             active   = false;
         }
@@ -155,6 +158,7 @@ class Member implements Dispatcher.Endpoint {
             if (message.pid != middleware.getPid() && leader != null) {
                 System.err.println("Standing down my leadership");
                 leader.cancel();
+                auction.stopBroker();
                 leader = null;
             }
             currentTerm = message.term;

@@ -17,9 +17,10 @@ public class Main {
         MulticastSocket groupSocket    = new MulticastSocket(GROUP_PORT);
         groupSocket.joinGroup(groupAddress.getAddress());
         Middleware middleware          = new Middleware(peerSocket, groupSocket, groupAddress);
-        Member member = new Member(middleware.getGroup(), middleware, true);
+        EnergyAuction auction = new EnergyAuction(middleware, 0.20);
+        Member member = new Member(middleware.getGroup(), middleware, auction);
         middleware.start();
-        new Dispatcher(middleware.getDeliveryQueue(), member, null).run();
+        new Dispatcher(middleware.getDeliveryQueue(), member, auction).run();
         middleware.shutdown();
     }
 
