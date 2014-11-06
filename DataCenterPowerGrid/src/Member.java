@@ -9,10 +9,10 @@ class Member implements Dispatcher.Endpoint {
     private Election   election = null;
     private Leader     leader   = null;
 
-    private long      leaderPid = Middleware.NO_PID;
-    private long            pid = Middleware.NO_PID;
-    private long  lastHeartbeat = -1;
-    private int     currentTerm = 0;
+    private int      leaderPid = Middleware.NO_PID;
+    private int    currentTerm = 0;
+    private long lastHeartbeat = -1;
+
 
     public Member(Group theGroup, Middleware theMiddleware, boolean candidate) {
         this.group      = theGroup;
@@ -45,6 +45,7 @@ class Member implements Dispatcher.Endpoint {
             if (active) {
                 countVotes();
             } else if (canVote()) {
+                // todo this check will never start  a second election. what to do?.
                 startElection();
             }
         }
@@ -59,7 +60,7 @@ class Member implements Dispatcher.Endpoint {
             totalVotes = 0;
             positiveVotes = 0;
             active = true;
-            if (leaderPid != Middleware.NO_PID && pid != Middleware.NO_PID) {
+            if (leaderPid != Middleware.NO_PID && middleware.getPid() != Middleware.NO_PID) {
                 group.remove(leaderPid);
                 middleware.sendGroup(new Leave(leaderPid), true);
             }
@@ -79,13 +80,13 @@ class Member implements Dispatcher.Endpoint {
                 System.err.println("I declare myself leader");
                 // we have a majority, start leading
                 // assign myself a pid if i don't have one yet
-                if (pid == Middleware.NO_PID)
-                    pid = group.nextPid();
-                leader = new Leader(group, middleware, pid, currentTerm);
+                if (middleware.getPid() == Middleware.NO_PID)
+                    middleware.setPid(group.nextPid());
+                leader = new Leader(group, middleware, currentTerm);
+                leader.sendHeartbeat();
                 middleware.getTimer().schedule(leader, Leader.HEARTBEAT_PERIOD, Leader.HEARTBEAT_PERIOD);
-                middleware.sendGroup(new Leader.Heartbeat(System.currentTimeMillis(), pid, currentTerm), false);
             }
-             active   = false;
+            active   = false;
         }
 
         public void onVoteReply(boolean reply, int term) {
@@ -105,17 +106,17 @@ class Member implements Dispatcher.Endpoint {
     }
 
    public static class Leave extends Message {
-        public final long member;
-        public Leave(long member) {
+        public final int member;
+        public Leave(int member) {
             this.member  = member;
         }
     }
 
     public static class Join extends Message {
         /* Announce the join request */
-        public final long member;
+        public final int member;
         public final SocketAddress address;
-        public Join(long member, SocketAddress address) {
+        public Join(int member, SocketAddress address) {
             this.member  = member;
             this.address = address;
         }
@@ -137,7 +138,7 @@ class Member implements Dispatcher.Endpoint {
         }
     }
 
-    public void onHeartbeat(long sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
+    public void onHeartbeat(int sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
         System.err.printf("onHeartbeat(%s, %d, %d);\n", address.toString(), timestamp, message.term);
         lastHeartbeat = timestamp;
         // cancel any running elections
@@ -151,13 +152,15 @@ class Member implements Dispatcher.Endpoint {
                 leaderPid = message.pid;
             }
             // I didn't send this to myself, and there is some other leader.
-            if (message.pid != pid && leader != null) {
-                System.err.println("Standing down");
+            if (message.pid != middleware.getPid() && leader != null) {
+                System.err.println("Standing down my leadership");
                 leader.cancel();
                 leader = null;
             }
             currentTerm = message.term;
         }
+        // compare message state
+        middleware.compareMessageState(message.state);
         // in theory, compute the difference between our received timestamp and
         // the leaders timestamp. In practice, just reply saying you're alive
         middleware.send(address, new Alive());
@@ -175,11 +178,7 @@ class Member implements Dispatcher.Endpoint {
 
     public void onWelcome(Leader.Welcome welcome) {
         System.err.printf("Welcome %d (%d)\n", welcome.pid, welcome.sequence_nr);
-        this.pid = welcome.pid;
-    }
-
-    public long getPid() {
-        return this.pid;
+        this.middleware.setPid(welcome.pid);
     }
 
     public void onVoteRequest(long timestamp, SocketAddress sender, int term) {

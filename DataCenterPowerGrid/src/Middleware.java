@@ -14,13 +14,14 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 class Middleware extends Thread {
-    public final static long  GROUP_PID = 0;
-    public final static long     NO_PID = -1;
+    public final static int  GROUP_PID = 0;
+    public final static int     NO_PID = -1;
 
     private DatagramSocket  peerSocket;
     private Receiver        peerReceiver;
@@ -46,40 +47,38 @@ class Middleware extends Thread {
 
     private Timer timer;
 
+    private int myPid = NO_PID;
     private boolean stopped; // TODO - make this depend on socket / group connected status
-    private long pid = NO_PID;
 
     public static class ReceivedMessage {
         public final long timestamp;
-        public final long sender;
+        public final int sender;
         public final DatagramPacket packet;
         public final Message payload;
-        public ReceivedMessage(long theTimestamp, long thePid,
+        public ReceivedMessage(long theTimestamp, int theSender,
                                DatagramPacket thePacket, Message theMessage) {
             this.timestamp = theTimestamp;
-            this.sender    = thePid;
+            this.sender    = theSender;
             this.packet    = thePacket;
             this.payload   = theMessage;
         }
     }
 
     private static class RetransmitRequest extends Message {
-        public final long sender;
+        public final int sender;
         public final int req_seq_nr;
-        public final boolean req_is_mc;
 
-        public RetransmitRequest(long sender, int req_seq_nr, boolean req_is_mc) {
+        public RetransmitRequest(int sender, int req_seq_nr) {
             this.sender     = sender;
             this.req_seq_nr = req_seq_nr;
-            this.req_is_mc  = req_is_mc;
         }
     }
 
 
     private static class RetransmitMessage extends Message {
-        public final long sender;
+        public final int sender;
         public final Message payload;
-        public RetransmitMessage(long sender, Message payload) {
+        public RetransmitMessage(int sender, Message payload) {
             this.sender = sender;
             this.payload = payload;
         }
@@ -94,39 +93,36 @@ class Middleware extends Thread {
         /* periodically request undelivered group messages */
         public void run() {
             for (HoldbackQueue.UndeliveredMessage r : groupQueue.getUndeliveredMessages()) {
-                if (group.isAlive(r.sender))
-                    send(r.sender, new RetransmitRequest(r.sender, r.sequence_nr, true), false);
-                else // maybe someone in the group delivered it, so request it from the group
-                    sendGroup(new RetransmitRequest(r.sender, r.sequence_nr, true), false);
+                request(r.sender, r.sequence_nr);
             }
         }
     }
 
     private class Resender extends TimerTask {
         /* resend unacknowledged peer-to-peer messages periodically */
-        private Map<Long, Set<Integer>> unacknowledged;
+        private Map<Integer, Set<Integer>> unacknowledged;
         public Resender() {
-            unacknowledged = new HashMap<Long, Set<Integer>>();
+            unacknowledged = new HashMap<Integer, Set<Integer>>();
         }
 
         public synchronized void run() {
             /* TODO - this does not take congestion into account */
-            for (Map.Entry<Long, Set<Integer>> item : unacknowledged.entrySet()) {
-                long receiver = item.getKey();
+            for (Map.Entry<Integer, Set<Integer>> item : unacknowledged.entrySet()) {
+                int receiver = item.getKey();
                 if (!group.isAlive(receiver))
                     continue;
                 for (Integer sequence_nr : item.getValue())
-                    resend(receiver, sequence_nr);
+                    resend(myPid, receiver, sequence_nr);
             }
         }
 
-        public synchronized void add(long receiver, int sequence_nr) {
+        public synchronized void add(int receiver, int sequence_nr) {
             if (!unacknowledged.containsKey(receiver))
                 unacknowledged.put(receiver, new HashSet<Integer>());
             unacknowledged.get(receiver).add(sequence_nr);
         }
 
-        public synchronized void acknowledge(long receiver, int sequence_nr) {
+        public synchronized void acknowledge(int receiver, int sequence_nr) {
             if (unacknowledged.containsKey(receiver))
                 unacknowledged.get(receiver).remove(sequence_nr);
         }
@@ -159,7 +155,7 @@ class Middleware extends Thread {
         this.resender       = new Resender();
     }
 
-    private void prepareMessage(long receiver, Message message, boolean is_ordered) {
+    private void prepareMessage(int receiver, Message message, boolean is_ordered) {
         message.is_multicast = (receiver == GROUP_PID);
         message.is_ordered   = is_ordered;
         if (message.is_ordered) {
@@ -178,7 +174,7 @@ class Middleware extends Thread {
         }
     }
 
-    public void send(long receiver, Message msg, boolean is_ordered) {
+    public void send(int receiver, Message msg, boolean is_ordered) {
         prepareMessage(receiver, msg, is_ordered);
         send(this.group.getAddress(receiver), msg);
     }
@@ -197,32 +193,30 @@ class Middleware extends Thread {
         }
     }
 
-    public void resend(long receiver, int sequence_nr) {
-        Message message = sentMessages.find(receiver, sequence_nr);
-        SocketAddress address = group.getAddress(receiver);
-        if (message != null)
-            send(address, message);
-    }
-
-    public void resend(long requester, RetransmitRequest req) {
-        System.err.println("resend to retransmitrequest");
-        if (req.is_multicast) {
-            // if it was multicast, it means we're asking the group for delivered
-            // messages of a now-dead group member
-            Message message = deliveredMulticasts.find(req.sender, req.sequence_nr);
-            if (message != null)
-                sendGroup(new RetransmitMessage(req.sender, message), false);
-        } else {
-            Message message       = sentMessages.find(req.req_is_mc ? GROUP_PID : requester, req.req_seq_nr);
-            SocketAddress address = req.req_is_mc ? groupAddress : group.getAddress(requester);
-            System.err.printf("Resending %s message #%d to %s\n", req.req_is_mc ? "multicast" : "peer-to-peer",
-                              req.req_seq_nr, req.req_is_mc ? "group" : String.format("pid %d", requester));
-            if (message != null)
-                send(address, message); // send the message unaltered
+    public void resend(int sender, int receiver, int sequence_nr) {
+        Message message = (sender == myPid ?
+                           sentMessages.find(receiver, sequence_nr) :
+                           deliveredMulticasts.find(sender, sequence_nr));
+        if (message != null) {
+            if (sender != myPid)
+                message = new RetransmitMessage(sender, message);
+            if (receiver == GROUP_PID) {
+                send(groupAddress,message);
+            } else {
+                send(group.getAddress(receiver), message);
+            }
         }
     }
 
-    public int[] getMessageState(long myPid) {
+    public void request(int sender, int sequence_nr) {
+        RetransmitRequest req = new RetransmitRequest(sender, sequence_nr);
+        if (group.isAlive(sender))
+            send(sender, req, false);
+        else
+            sendGroup(req, false);
+    }
+
+    public int[] getMessageState() {
         int state[] = new int[group.maxPid()]; // allocate an array for all nodes
         for (int i = 0; i < state.length; i++) {
             if (i == myPid) {
@@ -232,6 +226,18 @@ class Middleware extends Thread {
             }
         }
         return state;
+    }
+
+    public void compareMessageState(int state[]) {
+        for (int i = 0; i < state.length; i++) {
+            if (i == myPid && sentMessages.getLastTo(GROUP_PID) > state[i]) {
+                resend(myPid, GROUP_PID, state[i] + 1);
+            } else if (!group.isAlive(i) && groupQueue.getLastOf(i) > state[i]) {
+                resend(i, GROUP_PID, state[i] + 1);
+            } else if (groupQueue.getLastOf(i) < state[i]) {
+                request(i, state[i]);
+            }
+        }
     }
 
     public void run() {
@@ -245,10 +251,12 @@ class Middleware extends Thread {
                     System.err.println("Received undecodable message");
                     continue;
                 }
-                if (message.payload instanceof RetransmitRequest)
-                    resend(message.sender, (RetransmitRequest)message.payload);
-                else
+                if (message.payload instanceof RetransmitRequest) {
+                    RetransmitRequest req = (RetransmitRequest)message.payload;
+                    resend(req.sender, GROUP_PID, req.req_seq_nr);
+                } else {
                     deliverMessage(message);
+                }
             }
         } catch (InterruptedException ex) {
             // guess somebody wanted us to stop
@@ -297,7 +305,7 @@ class Middleware extends Thread {
                     new ByteArrayInputStream(packet.getData(), packet.getOffset(), packet.getLength())
             );
             Message message = (Message) stream.readObject();
-            long    sender = group.getPid(packet.getSocketAddress());
+            int      sender = group.getPid(packet.getSocketAddress());
             return new ReceivedMessage(now, sender, packet, message);
         } catch (IOException e) {
             e.printStackTrace();
@@ -375,4 +383,13 @@ class Middleware extends Thread {
     public Group getGroup() {
         return group;
     }
+
+    public int getPid() {
+        return myPid;
+    }
+
+    public void setPid(int pid) {
+        this.myPid = pid;
+    }
+
 }

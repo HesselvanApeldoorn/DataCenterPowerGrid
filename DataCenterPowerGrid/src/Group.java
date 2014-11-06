@@ -6,50 +6,50 @@ import java.net.SocketAddress;
 /* A thread-safe mapping from PID's to SocketAddresses that represents
  * the group. */
 class Group {
-    private long nextPid;
-    private Map<Long, SocketAddress> pidToSocket;
-    private Map<SocketAddress, Long> socketToPid;
+    private int nextPid;
+    private Map<Integer, SocketAddress> pidToSocket;
+    private Map<SocketAddress, Integer> socketToPid;
 
     public Group() {
-        nextPid         = 0l;
-        pidToSocket     = new HashMap<Long, SocketAddress>();
-        socketToPid     = new DefaultHashMap<SocketAddress, Long>(Middleware.NO_PID);
+        nextPid         = 0;
+        pidToSocket     = new HashMap<Integer, SocketAddress>();
+        socketToPid     = new DefaultHashMap<SocketAddress, Integer>(Middleware.NO_PID);
     }
 
-    public synchronized void add(long pid, SocketAddress address) {
+    public synchronized void add(int pid, SocketAddress address) {
         pidToSocket.put(pid, address);
         socketToPid.put(address, pid);
         nextPid = (pid > nextPid ? pid : nextPid);
     }
 
-    public synchronized void remove(long pid) {
+    public synchronized void remove(int pid) {
         // TODO we should rather use tombstones
         // or even more rather, a log
         socketToPid.remove(pidToSocket.get(pid));
         pidToSocket.remove(pid);
     }
 
-    public synchronized SocketAddress getAddress(long pid) {
+    public synchronized SocketAddress getAddress(int pid) {
         return pidToSocket.get(pid);
     }
 
-    public synchronized long getPid(SocketAddress addr) {
+    public synchronized int getPid(SocketAddress addr) {
         return socketToPid.get(addr);
     }
 
-    public synchronized Set<Long> getPids() {
+    public synchronized Set<Integer> getPids() {
         return pidToSocket.keySet();
     }
 
-    public synchronized boolean isAlive(long pid) {
+    public synchronized boolean isAlive(int pid) {
         return pidToSocket.containsKey(pid);
     }
 
-    public synchronized long nextPid() {
+    public synchronized int nextPid() {
         return ++nextPid;
     }
 
-    public synchronized long maxPid() {
+    public synchronized int maxPid() {
         return nextPid;
     }
 

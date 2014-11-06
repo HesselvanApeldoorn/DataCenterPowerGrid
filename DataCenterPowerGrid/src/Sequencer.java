@@ -2,13 +2,13 @@ import java.util.Map;
 
 /* Class to give each ordered message a unique sequence number */
 class Sequencer {
-    private Map<Long, Integer> sequenceNrs;
+    private Map<Integer, Integer> sequenceNrs;
 
     public Sequencer() {
-        sequenceNrs = new DefaultHashMap<Long, Integer>(0);
+        sequenceNrs = new DefaultHashMap<Integer, Integer>(0);
     }
 
-    public synchronized int next(long pid) {
+    public synchronized int next(int pid) {
         int lastNr = sequenceNrs.get(pid);
         sequenceNrs.put(pid, ++lastNr);
         return lastNr;

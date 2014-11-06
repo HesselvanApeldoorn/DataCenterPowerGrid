@@ -13,15 +13,15 @@ class HoldbackQueue {
      * manner per peer. Thus, it doesn't guarantee causual or total
      * ordering, only per-peer FIFO ordering. Also note that multicast
      * ordering and peer-to-peer ordering must be kept separate! */
-    private Map<Long, PriorityQueue<Middleware.ReceivedMessage>> messages;
-    private Map<Long, Integer>                                  delivered;
-    private Comparator<Middleware.ReceivedMessage>             comparator;
+    private Map<Integer, PriorityQueue<Middleware.ReceivedMessage>> messages;
+    private Map<Integer, Integer>                                  delivered;
+    private Comparator<Middleware.ReceivedMessage>                comparator;
 
     public static class UndeliveredMessage {
-        public final long sender;
+        public final int sender;
         public final int sequence_nr;
 
-        public UndeliveredMessage(long sender, int seqnr) {
+        public UndeliveredMessage(int sender, int seqnr) {
             this.sender      = sender;
             this.sequence_nr = seqnr;
         }
@@ -34,8 +34,8 @@ class HoldbackQueue {
     }
 
     public HoldbackQueue() {
-        this.messages   = new HashMap<Long, PriorityQueue<Middleware.ReceivedMessage>>(10);
-        this.delivered  = new DefaultHashMap<Long, Integer>(100, 0);
+        this.messages   = new HashMap<Integer, PriorityQueue<Middleware.ReceivedMessage>>(10);
+        this.delivered  = new DefaultHashMap<Integer, Integer>(100, 0);
         this.comparator = new ReceivedMessageComparator();
     }
 
@@ -48,7 +48,7 @@ class HoldbackQueue {
         messages.get(message.sender).offer(message);
     }
 
-    public synchronized List<Middleware.ReceivedMessage> getDeliverableMessages(long sender) {
+    public synchronized List<Middleware.ReceivedMessage> getDeliverableMessages(int sender) {
         List<Middleware.ReceivedMessage> deliverable = new LinkedList<Middleware.ReceivedMessage>();
         PriorityQueue<Middleware.ReceivedMessage> queue = messages.get(sender);
         if (queue == null)
@@ -68,8 +68,8 @@ class HoldbackQueue {
 
     public synchronized List<UndeliveredMessage> getUndeliveredMessages() {
         List<UndeliveredMessage> list = new ArrayList<UndeliveredMessage>();
-        for (Map.Entry<Long, PriorityQueue<Middleware.ReceivedMessage>> item : messages.entrySet()) {
-            long                                     sender = item.getKey();
+        for (Map.Entry<Integer, PriorityQueue<Middleware.ReceivedMessage>> item : messages.entrySet()) {
+            int                                      sender = item.getKey();
             PriorityQueue<Middleware.ReceivedMessage> queue = item.getValue();
             if (queue.size() > 0) {
                 int lastDelivered = delivered.get(sender);
@@ -82,7 +82,7 @@ class HoldbackQueue {
         return list;
     }
 
-    public int getLastOf(long pid) {
+    public int getLastOf(int pid) {
         return delivered.get(pid);
     }
 
