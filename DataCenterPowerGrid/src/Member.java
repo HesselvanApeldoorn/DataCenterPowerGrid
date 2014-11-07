@@ -41,7 +41,7 @@ class Member implements Dispatcher.Endpoint {
 
         @Override
         public void run() {
-            System.err.println("Election.run");
+           //System.err.println("Election.run");
             long now = System.currentTimeMillis();
             if (active) {
                 countVotes();
@@ -142,7 +142,7 @@ class Member implements Dispatcher.Endpoint {
     }
 
     public void onHeartbeat(int sender, SocketAddress address, long timestamp, Leader.Heartbeat message) {
-        System.err.printf("onHeartbeat(%s, %d, %d);\n", address.toString(), timestamp, message.term);
+        //System.err.printf("onHeartbeat(%s, %d, %d);\n", address.toString(), timestamp, message.term);
         lastHeartbeat = timestamp;
         // cancel any running elections
         election.active = false;
@@ -152,7 +152,6 @@ class Member implements Dispatcher.Endpoint {
                 // can trust it's messages. Therefore, I add it to the
                 // group.
                 group.add(message.pid, address);
-                leaderPid = message.pid;
             }
             // I didn't send this to myself, and there is some other leader.
             if (message.pid != middleware.getPid() && leader != null) {
@@ -161,6 +160,7 @@ class Member implements Dispatcher.Endpoint {
                 auction.stopBroker();
                 leader = null;
             }
+            leaderPid = message.pid;
             currentTerm = message.term;
         }
         // compare message state

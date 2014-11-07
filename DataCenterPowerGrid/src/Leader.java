@@ -66,7 +66,7 @@ public class Leader extends TimerTask {
     }
 
     public synchronized void onAlive(int sender, SocketAddress address, long timestamp) {
-        System.err.printf("onAlive(%d, %s, %d)\n", sender, address.toString(), timestamp);
+      //  System.err.printf("onAlive(%d, %s, %d)\n", sender, address.toString(), timestamp);
         if (sender == Middleware.NO_PID) {
             sender = group.nextPid();
             group.add(sender, address);

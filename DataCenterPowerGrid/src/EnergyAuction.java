@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 class EnergyAuction implements Dispatcher.Endpoint {
-    public final static long AUCTION_PERIOD = 60000;// one minute
+    public final static long AUCTION_PERIOD = 30000;// one half minute
     private final Middleware middleware;
     private final double startingPrice;
     private Job job;
@@ -81,6 +81,7 @@ class EnergyAuction implements Dispatcher.Endpoint {
             double newPrice = Math.max(startingPrice * 0.2,
                                        lastPrice + (random.nextGaussian() * lastPrice * 0.25));
             long startTime = System.currentTimeMillis() + period;
+            System.out.printf("New price: %.4f cents / kWh\n", newPrice);
             middleware.sendGroup(new Sale(startTime, period, newPrice), true);
             lastPrice = newPrice;
         }
@@ -107,6 +108,7 @@ class EnergyAuction implements Dispatcher.Endpoint {
         if (!orders.containsKey(sender))
             orders.put(sender, new ArrayList<Order>(10));
         // such persistence. much wow
+        System.out.printf("Log order of %.2f kWh from %d\n", order.orderKwh, sender);
         orders.get(sender).add(order);
     }
 
@@ -115,6 +117,7 @@ class EnergyAuction implements Dispatcher.Endpoint {
             job = Job.newJob(lastPrice);
         }
         Order order = job.computeOrder(sale);
+        System.out.printf("Order %.2f kWh at %.4f euro / kWh\n", order.orderKwh, sale.priceKwh);
         middleware.sendGroup(order, true);
         lastPrice = sale.priceKwh;
     }
