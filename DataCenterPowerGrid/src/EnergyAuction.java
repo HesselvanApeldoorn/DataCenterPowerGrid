@@ -81,7 +81,7 @@ class EnergyAuction implements Dispatcher.Endpoint {
             double newPrice = Math.max(startingPrice * 0.2,
                                        lastPrice + (random.nextGaussian() * lastPrice * 0.25));
             long startTime = System.currentTimeMillis() + period;
-            System.out.printf("New price: %.4f cents / kWh\n", newPrice);
+            System.out.printf("New price: %.4f euro / kWh\n", newPrice);
             middleware.sendGroup(new Sale(startTime, period, newPrice), true);
             lastPrice = newPrice;
         }

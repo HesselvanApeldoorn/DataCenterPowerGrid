@@ -18,7 +18,8 @@ class Sender extends Thread {
         while (!socket.isClosed()) {
             try {
                 DatagramPacket packet = queue.take();
-                socket.send(packet);
+                if (Math.random() < 0.95)
+                	socket.send(packet);
             } catch (IOException ex) {
                 System.out.println("Package was dropped because of IO exception");
                 ex.printStackTrace();
